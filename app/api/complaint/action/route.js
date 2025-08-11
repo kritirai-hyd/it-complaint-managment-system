@@ -1,8 +1,8 @@
-// app/api/complaint/status/route.js
+
 import { NextResponse } from "next/server";
 import Complaint from "@/models/complaint";
 import { connectMongoDB } from "@/lib/mongodb";
-import sendEmail from "@/utils/sendEmail";
+
 
 export async function POST(req) {
   try {
