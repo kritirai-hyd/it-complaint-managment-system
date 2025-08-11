@@ -1,0 +1,877 @@
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSession, signOut } from "next-auth/react";
+import "./UserDashboard.css";
+import userAvatar from '../../assets/images/user.png';
+import Image from "next/image";
+import { FiLogOut, FiPlus, FiX, FiCheck, FiClock, FiAlertTriangle, FiFile, FiTrash2 } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Custom hook implementation for debouncing
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Constants
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_COUNT = 5;
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+
+const STATUSES = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in-progress',
+  RESOLVED: 'resolved',
+  REJECTED: 'rejected'
+};
+
+const STATUS_LABELS = {
+  [STATUSES.PENDING]: 'Pending',
+  [STATUSES.IN_PROGRESS]: 'In Progress',
+  [STATUSES.RESOLVED]: 'Resolved',
+  [STATUSES.REJECTED]: 'Rejected'
+};
+
+const STATUS_ICONS = {
+  [STATUSES.PENDING]: <FiClock />,
+  [STATUSES.IN_PROGRESS]: <FiAlertTriangle />,
+  [STATUSES.RESOLVED]: <FiCheck />,
+  [STATUSES.REJECTED]: <FiX />
+};
+
+const COMPLAINT_TYPES = {
+  Hardware: ["Hard Disk Issue", "Motherboard Issue", "Keyboard Problem", "Monitor Issue"],
+  Software: ["Addmobe Issue", "MS Office Related", "Operating System", "Application Crash"],
+  Network: ["WiFi Not Working", "LAN Not Working", "Connection Drops", "Slow Speed"]
+};
+
+const COMPANY_LOCATIONS = {
+  "Noida": ["PLOT NO - 56, 6C, C Block, Phase 2, C Block, Sector 62, Noida"],
+  "Delhi": ["70A/32, 3rd floor, Rama Road, Kirti Nagar, Delhi-110015"]
+};
+
+// Utility functions
+const sortComplaints = (complaints) =>
+  [...complaints].sort((a, b) => {
+    if (a.complaintType < b.complaintType) return -1;
+    if (a.complaintType > b.complaintType) return 1;
+    if (a.status < b.status) return -1;
+    if (a.status > b.status) return 1;
+    return (a.complaintId ?? 0) - (b.complaintId ?? 0);
+  });
+
+const validateFormData = (formData) => {
+  const errors = {};
+
+  if (!formData.phone?.trim() || !/^\d{10}$/.test(formData.phone)) {
+    errors.phone = "Phone number must be exactly 10 digits";
+  }
+
+  if (!formData.complaintType?.trim()) {
+    errors.complaintType = "Complaint type is required";
+  }
+
+  if (!formData.title?.trim()) {
+    errors.title = "Title is required";
+  }
+
+  if (!formData.description?.trim()) {
+    errors.description = "Description is required";
+  }
+
+  if (!formData.location?.trim()) {
+    errors.location = "Location is required";
+  }
+
+  if (!formData.companyAddress?.trim()) {
+    errors.companyAddress = "Company address is required";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+// Sub-components
+const LoadingState = () => (
+  <div className="loading-state">
+    <div className="spinner"></div>
+    <p>Loading complaints...</p>
+  </div>
+);
+
+const ErrorState = ({ error, onRetry }) => (
+  <div className="error-state">
+    <p>{error}</p>
+    <button onClick={onRetry}>Retry</button>
+  </div>
+);
+
+const EmptyState = ({ searchTerm, activeTab, onNewComplaint }) => (
+  <div className="empty-state">
+    <p>
+      {searchTerm 
+        ? "No complaints match your search."
+        : activeTab === "all"
+          ? "You haven't submitted any complaints yet."
+          : `You have no ${activeTab} complaints.`}
+    </p>
+    {!searchTerm && activeTab === "all" && (
+      <button 
+        className="new-complaint-btn"
+        onClick={onNewComplaint}
+      >
+        <FiPlus /> Submit Your First Complaint
+      </button>
+    )}
+  </div>
+);
+
+const ComplaintCard = ({ complaint }) => {
+  const status = complaint.status.toLowerCase();
+  
+  return (
+    <motion.div 
+      className="complaint-card"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="card-header">
+        <h3>{complaint.title}</h3>
+        <div className={`status ${status}`}>
+          {STATUS_ICONS[status] || null}
+          <span>{STATUS_LABELS[status] || complaint.status}</span>
+        </div>
+      </div>
+      
+      <div className="card-body">
+        <p className="complaint-description">
+          {complaint.description.length > 150 
+            ? `${complaint.description.substring(0, 150)}...` 
+            : complaint.description}
+        </p>
+        
+        <div className="complaint-meta">
+          <div className="meta-item">
+            <span className="meta-label">Type:</span>
+            <span>{complaint.complaintType}</span>
+          </div>
+          {complaint.complaintSubType && (
+            <div className="meta-item">
+              <span className="meta-label">Sub-Type:</span>
+              <span>{complaint.complaintSubType}</span>
+            </div>
+          )}
+          <div className="meta-item">
+            <span className="meta-label">ID:</span>
+            <span>{complaint.complaintId || complaint.complaintid}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="card-footer">
+        <div className="date">
+          {complaint.updatedAt 
+            ? new Date(complaint.updatedAt).toLocaleDateString()
+            : "N/A"}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ConfirmDialog = ({ message, onConfirm, onCancel }) => (
+  <div className="confirm-dialog-overlay">
+    <motion.div 
+      className="confirm-dialog"
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+    >
+      <p>{message}</p>
+      <div className="dialog-actions">
+        <button onClick={onCancel} className="secondary">Cancel</button>
+        <button onClick={onConfirm} className="primary">Confirm</button>
+      </div>
+    </motion.div>
+  </div>
+);
+
+const FilePreview = ({ file, onRemove }) => (
+  <div className="file-preview-item">
+    <FiFile className="file-icon" />
+    <span className="file-name">{file.name}</span>
+    <span className="file-size">{(file.size / 1024).toFixed(1)} KB</span>
+    <button onClick={() => onRemove(file)} className="remove-file">
+      <FiTrash2 />
+    </button>
+  </div>
+);
+
+// Main Component
+const UserDashboard = () => {
+  const { data: session, status } = useSession();
+  const loadingUser = status === "loading";
+
+  const [complaints, setComplaints] = useState([]);
+  const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [generatedComplaintId, setGeneratedComplaintId] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const [files, setFiles] = useState([]);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    userEmail: "",
+    phone: "",
+    complaintType: "",
+    complaintSubType: "",
+    title: "",
+    description: "",
+    location: "",
+    companyAddress: ""
+  });
+
+  // Load user data and complaints on session change
+  useEffect(() => {
+    if (!session?.user) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      name: session.user.name || "",
+      userEmail: session.user.email || "",
+    }));
+
+    loadComplaints();
+  }, [session?.user]);
+
+  // Input change handlers
+  const handleInputChange = useCallback((field) => (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
+    setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+  }, []);
+
+  const handleLocationChange = useCallback((e) => {
+    const location = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      location,
+      companyAddress: "" // Reset company name when location changes
+    }));
+  }, []);
+
+  const handleComplaintTypeChange = useCallback((e) => {
+    const complaintType = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      complaintType,
+      complaintSubType: "" // Reset sub-type when main type changes
+    }));
+  }, []);
+
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    
+    // Validate files
+    const invalidFiles = selectedFiles.filter(file => 
+      !ALLOWED_FILE_TYPES.includes(file.type)
+    );
+    
+    if (invalidFiles.length > 0) {
+      setError(`Invalid file type: ${invalidFiles.map(f => f.type).join(', ')}`);
+      return;
+    }
+    
+    const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      setError(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`);
+      return;
+    }
+    
+    if (selectedFiles.length + files.length > MAX_FILE_COUNT) {
+      setError(`Maximum ${MAX_FILE_COUNT} files allowed`);
+      return;
+    }
+    
+    setFiles(prev => [...prev, ...selectedFiles]);
+    setError(null);
+  };
+
+  const removeFile = (fileToRemove) => {
+    setFiles(files.filter(file => file !== fileToRemove));
+  };
+
+  // Reset form to initial state
+  const resetForm = useCallback(() => {
+    setFormData({
+      name: session?.user?.name || "",
+      userEmail: session?.user?.email || "",
+      phone: "",
+      complaintType: "",
+      complaintSubType: "",
+      title: "",
+      description: "",
+      location: "",
+      companyAddress: ""
+    });
+    setFiles([]);
+    setError(null);
+    setFormErrors({});
+  }, [session]);
+
+  // Load complaints from API
+  const loadComplaints = async () => {
+    if (!session?.user?.email) return;
+
+    setFetching(true);
+    setError(null);
+
+    try {
+      const res = await fetch(
+        `/api/complaint?useremail=${encodeURIComponent(session.user.email)}`
+      );
+      
+      if (!res.ok) {
+        throw new Error("Failed to load complaints.");
+      }
+
+      const data = await res.json();
+      const sorted = sortComplaints(data.complaints || []);
+      setComplaints(sorted);
+    } catch (err) {
+      setError(err.message || "Error loading complaints.");
+      console.error("Load complaints error:", err);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  // Form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+
+    const { isValid, errors } = validateFormData(formData);
+    if (!isValid) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const formDataObj = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataObj.append(key, value);
+      });
+
+      files.forEach(file => {
+        formDataObj.append('files', file);
+      });
+
+      const res = await fetch("/api/complaint", {
+        method: "POST",
+        body: formDataObj,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Backend error response:", errorData);
+        throw new Error(errorData?.error || "Submission failed.");
+      }
+
+      const data = await res.json();
+      setGeneratedComplaintId(data.complaintId);
+      setSubmissionSuccess(true);
+
+      setTimeout(() => {
+        resetForm();
+        setFormOpen(false);
+        loadComplaints();
+      }, 3000);
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Filter complaints based on active tab and search term
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter(complaint => {
+      // Filter by tab
+      if (activeTab !== "all" && complaint.status.toLowerCase() !== activeTab) {
+        return false;
+      }
+      
+      // Filter by search term
+      if (debouncedSearchTerm) {
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        return (
+          complaint.title.toLowerCase().includes(searchLower) ||
+          complaint.description.toLowerCase().includes(searchLower) ||
+          complaint.complaintType.toLowerCase().includes(searchLower) ||
+          (complaint.complaintId && complaint.complaintId.toString().includes(debouncedSearchTerm))
+        );
+      }
+      
+      return true;
+    });
+  }, [complaints, activeTab, debouncedSearchTerm]);
+
+  return (
+    <div className="dashboard-container">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h2 className="logo">Complaint Portal</h2>
+          <div className="user-profile">
+            <div className="avatar">
+              <Image 
+                src={userAvatar} 
+                alt="User" 
+                width={40} 
+                height={40} 
+                priority
+              />
+            </div>
+            <div className="user-details">
+              <span className="username">{session?.user?.name || "User"}</span>
+              <span className="user-email">{session?.user?.email || ""}</span>
+            </div>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <button 
+            className="new-complaint-btn"
+            onClick={() => {
+              setFormOpen(true);
+              setSubmissionSuccess(false);
+            }}
+            disabled={submitting}
+            aria-label="Submit new complaint"
+            aria-expanded={isFormOpen}
+          >
+            <FiPlus /> New Complaint
+          </button>
+          
+          <div className="nav-links">
+            <button 
+              className={`nav-link ${activeTab === "all" ? "active" : ""}`}
+              onClick={() => setActiveTab("all")}
+              aria-current={activeTab === "all" ? "page" : undefined}
+            >
+              All Complaints
+            </button>
+            <button 
+              className={`nav-link ${activeTab === "pending" ? "active" : ""}`}
+              onClick={() => setActiveTab("pending")}
+              aria-current={activeTab === "pending" ? "page" : undefined}
+            >
+              Pending
+            </button>
+            <button 
+              className={`nav-link ${activeTab === "in-progress" ? "active" : ""}`}
+              onClick={() => setActiveTab("in-progress")}
+              aria-current={activeTab === "in-progress" ? "page" : undefined}
+            >
+              In Progress
+            </button>
+            <button 
+              className={`nav-link ${activeTab === "resolved" ? "active" : ""}`}
+              onClick={() => setActiveTab("resolved")}
+              aria-current={activeTab === "resolved" ? "page" : undefined}
+            >
+              Resolved
+            </button>
+          </div>
+        </nav>
+
+        <button 
+          className="logout-btn"
+          onClick={() => setShowLogoutConfirm(true)}
+          aria-label="Logout"
+        >
+          <FiLogOut /> Logout
+        </button>
+      </aside>
+
+      {/* Main Content */}
+      <main className="main-content">
+        <header className="content-header">
+          <h1>
+            {activeTab === "all" ? "All Complaints" : 
+             activeTab === "pending" ? "Pending Complaints" :
+             activeTab === "in-progress" ? "Complaints In Progress" :
+             "Resolved Complaints"}
+          </h1>
+          
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Search complaints..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search complaints"
+            />
+          </div>
+        </header>
+
+        {/* Complaint Form Modal */}
+        <AnimatePresence>
+          {isFormOpen && (
+            <div className="modal-overlay">
+              <motion.div 
+                className="complaint-form-modal"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="complaint-form-title"
+              >
+                {submissionSuccess ? (
+                  <motion.div 
+                    className="submission-success"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <motion.div 
+                      className="success-icon"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                    >
+                      <FiCheck />
+                    </motion.div>
+                    <h2>Complaint Submitted Successfully!</h2>
+                    <p>Your complaint has been registered with ID:</p>
+                    <motion.div 
+                      className="complaint-id-display"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      {generatedComplaintId}
+                    </motion.div>
+                    <p>We'll get back to you soon. You can track the status in your dashboard.</p>
+                    
+                    <motion.div
+                      className="progress-bar"
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 3, ease: "linear" }}
+                    />
+                  </motion.div>
+                ) : (
+                  <>
+                    <div className="modal-header">
+                      <h2 id="complaint-form-title">Register New Complaint</h2>
+                      <button 
+                        className="close-btn"
+                        onClick={() => { resetForm(); setFormOpen(false); }}
+                        disabled={submitting}
+                        aria-label="Close complaint form"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit}>
+                      {error && (
+                        <div className="error-message" role="alert">
+                          {error}
+                        </div>
+                      )}
+
+                      <div className="form-grid">
+                        <div className="form-group">
+                          <label htmlFor="name">Name *</label>
+                          <input 
+                            id="name"
+                            type="text" 
+                            value={formData.name} 
+                            onChange={handleInputChange("name")} 
+                            disabled
+                            aria-disabled="true"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="email">Email *</label>
+                          <input 
+                            id="email"
+                            type="email" 
+                            value={formData.userEmail} 
+                            onChange={handleInputChange("userEmail")} 
+                            disabled
+                            aria-disabled="true"
+                          />
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="phone">Phone Number *</label>
+                          <input 
+                            id="phone"
+                            type="tel" 
+                            value={formData.phone} 
+                            onChange={handleInputChange("phone")} 
+                            maxLength={10}
+                            placeholder="10 digit phone number"
+                            required
+                            aria-invalid={!!formErrors.phone}
+                            aria-describedby={formErrors.phone ? "phone-error" : undefined}
+                          />
+                          {formErrors.phone && (
+                            <span id="phone-error" className="field-error">
+                              {formErrors.phone}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="complaintType">Complaint Type *</label>
+                          <select 
+                            id="complaintType"
+                            value={formData.complaintType} 
+                            onChange={handleComplaintTypeChange}
+                            required
+                            aria-invalid={!!formErrors.complaintType}
+                            aria-describedby={formErrors.complaintType ? "type-error" : undefined}
+                          >
+                            <option value="">Select a type</option>
+                            <option value="Hardware">Hardware</option>
+                            <option value="Software">Software</option>
+                            <option value="Network">Network</option>
+                          </select>
+                          {formErrors.complaintType && (
+                            <span id="type-error" className="field-error">
+                              {formErrors.complaintType}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="complaintSubType">Complaint Sub-Type</label>
+                          <select 
+                            id="complaintSubType"
+                            value={formData.complaintSubType} 
+                            onChange={handleInputChange("complaintSubType")}
+                            disabled={!formData.complaintType}
+                          >
+                            <option value="">Select a sub-type</option>
+                            {formData.complaintType && 
+                              COMPLAINT_TYPES[formData.complaintType]?.map((subType, index) => (
+                                <option key={index} value={subType}>
+                                  {subType}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        
+                        <div className="form-group">
+                          <label htmlFor="location">Location *</label>
+                          <select 
+                            id="location"
+                            value={formData.location} 
+                            onChange={handleLocationChange}
+                            required
+                            aria-invalid={!!formErrors.location}
+                            aria-describedby={formErrors.location ? "location-error" : undefined}
+                          >
+                            <option value="">Select a location</option>
+                            <option value="Noida">Noida</option>
+                            <option value="Delhi">Delhi</option>
+                          </select>
+                          {formErrors.location && (
+                            <span id="location-error" className="field-error">
+                              {formErrors.location}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="form-group">
+                          <label htmlFor="companyAddress">Company Address *</label>
+                          <select 
+                            id="companyAddress"
+                            value={formData.companyAddress} 
+                            onChange={handleInputChange("companyAddress")}
+                            required
+                            disabled={!formData.location}
+                            aria-invalid={!!formErrors.companyAddress}
+                            aria-describedby={formErrors.companyAddress ? "company-error" : undefined}
+                          >
+                            <option value="">Select a company</option>
+                            {formData.location && 
+                              COMPANY_LOCATIONS[formData.location]?.map((company, index) => (
+                                <option key={index} value={company}>
+                                  {company}
+                                </option>
+                              ))}
+                          </select>
+                          {formErrors.companyAddress && (
+                            <span id="company-error" className="field-error">
+                              {formErrors.companyAddress}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="form-group">
+                          <label htmlFor="attachments">Attachments (Max 5 files, 5MB each)</label>
+                          <input 
+                            id="attachments"
+                            type="file" 
+                            multiple
+                            onChange={handleFileChange}
+                            accept=".jpg,.jpeg,.png,.gif,.pdf"
+                            disabled={files.length >= MAX_FILE_COUNT}
+                          />
+                          {files.length > 0 && (
+                            <div className="file-preview-list">
+                              {files.map((file, i) => (
+                                <FilePreview 
+                                  key={i} 
+                                  file={file} 
+                                  onRemove={removeFile} 
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="form-group span-2">
+                          <label htmlFor="title">Title *</label>
+                          <input 
+                            id="title"
+                            type="text" 
+                            value={formData.title} 
+                            onChange={handleInputChange("title")} 
+                            placeholder="Brief title of your complaint"
+                            required
+                            aria-invalid={!!formErrors.title}
+                            aria-describedby={formErrors.title ? "title-error" : undefined}
+                          />
+                          {formErrors.title && (
+                            <span id="title-error" className="field-error">
+                              {formErrors.title}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="form-group span-2">
+                          <label htmlFor="description">Description *</label>
+                          <textarea 
+                            id="description"
+                            value={formData.description} 
+                            onChange={handleInputChange("description")} 
+                            placeholder="Detailed description of your issue"
+                            rows={5}
+                            required
+                            aria-invalid={!!formErrors.description}
+                            aria-describedby={formErrors.description ? "desc-error" : undefined}
+                          />
+                          {formErrors.description && (
+                            <span id="desc-error" className="field-error">
+                              {formErrors.description}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="form-actions">
+                        <button 
+                          type="button" 
+                          className="cancel-btn"
+                          onClick={() => { resetForm(); setFormOpen(false); }}
+                          disabled={submitting}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          className="submit-btn"
+                          disabled={submitting}
+                        >
+                          {submitting ? "Submitting..." : "Submit Complaint"}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Logout Confirmation Dialog */}
+        <AnimatePresence>
+          {showLogoutConfirm && (
+            <ConfirmDialog
+              message="Are you sure you want to logout?"
+              onConfirm={() => signOut({ callbackUrl: "/login" })}
+              onCancel={() => setShowLogoutConfirm(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Complaints List */}
+        <div className="complaints-container">
+          {fetching && <LoadingState />}
+
+          {!fetching && error && (
+            <ErrorState error={error} onRetry={loadComplaints} />
+          )}
+
+          {!fetching && !error && filteredComplaints.length === 0 && (
+            <EmptyState 
+              searchTerm={debouncedSearchTerm} 
+              activeTab={activeTab}
+              onNewComplaint={() => setFormOpen(true)}
+            />
+          )}
+
+          {!fetching && !error && filteredComplaints.length > 0 && (
+            <div className="complaints-grid">
+              {filteredComplaints.map((complaint) => (
+                <ComplaintCard 
+                  key={complaint._id ?? complaint.complaintId} 
+                  complaint={complaint} 
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default UserDashboard;

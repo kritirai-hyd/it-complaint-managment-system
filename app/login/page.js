@@ -1,11 +1,10 @@
-import Main from "./Components/Home/Home";
+import Login from "../Components/User/Login";
 
 export default function Home() {
   return (
     <>
-
-<Main />
-
+<Login />
+    
     </>
   );
 }
