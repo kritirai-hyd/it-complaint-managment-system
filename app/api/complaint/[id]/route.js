@@ -1,72 +1,39 @@
-// app/api/complaint/[id]/route.js
-
 import { connectMongoDB } from "@/lib/mongodb";
 import Complaint from "@/models/complaint";
-import mongoose from "mongoose";
 
-export async function PATCH(request, contextPromise) {
-  const { params } = await contextPromise;
-  const id = params?.id;
-
+export async function POST(request) {
   await connectMongoDB();
-
-  // Validate MongoDB ObjectId
-  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-    return new Response(
-      JSON.stringify({ error: "Invalid complaint ID" }),
-      { status: 400 }
-    );
-  }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Invalid JSON in request body" }),
-      { status: 400 }
-    );
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { status, assignedTo, assignedToEmail, engineerMessage } = body;
+  const { complaintId } = body;
 
-  // Validate required fields
-  if (!status || !assignedTo || !assignedToEmail) {
-    return new Response(
-      JSON.stringify({ error: "Missing required fields" }),
-      { status: 400 }
-    );
+  if (!complaintId) {
+    return new Response(JSON.stringify({ error: "Missing complaintId" }), { status: 400 });
   }
+
+  const newComplaintData = {
+    ...body,
+    complaintId: complaintId, // e.g. 9554
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   try {
-    const updatedComplaint = await Complaint.findByIdAndUpdate(
-      id,
-      {
-        status,
-        assignedTo,
-        assignedToEmail,
-        engineerMessage: engineerMessage || "",
-        updatedAt: new Date(),
-      },
-      { new: true }
-    );
-
-    if (!updatedComplaint) {
-      return new Response(
-        JSON.stringify({ error: "Complaint not found" }),
-        { status: 404 }
-      );
-    }
+    const complaint = new Complaint(newComplaintData);
+    await complaint.save();
 
     return new Response(
-      JSON.stringify({ message: "Complaint updated", complaint: updatedComplaint }),
-      { status: 200 }
+      JSON.stringify({ message: "Complaint created", complaint }),
+      { status: 201 }
     );
   } catch (error) {
-    console.error("PATCH error:", error);
-    return new Response(
-      JSON.stringify({ error: "Server error", details: error.message }),
-      { status: 500 }
-    );
+    console.error("POST error:", error);
+    return new Response(JSON.stringify({ error: "Server error", details: error.message }), { status: 500 });
   }
 }

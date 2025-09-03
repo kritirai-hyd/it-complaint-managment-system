@@ -55,7 +55,7 @@
 /* Main Content Styles */
 .main {
   flex: 1;
-  margin-left: 250px;
+  /* margin-left: 250px; */
   min-height: 100vh;
 }
 
@@ -213,4 +213,12 @@
     margin: 2rem 1rem;
     padding: 1.5rem;
   }
+}.error-message {
+  color: red;
+}
+.success-message {
+  color: green;
+}
+.info-message {
+  color: blue;
 }

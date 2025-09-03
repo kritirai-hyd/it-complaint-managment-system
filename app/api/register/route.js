@@ -1,49 +1,45 @@
-import { connectMongoDB } from "@/lib/mongodb";
-import User from "@/models/user";
-import bcrypt from "bcryptjs";
+// /app/api/register/route.js
+import { hash } from 'bcryptjs';
+import User from '@/models/user';
+import { connectMongoDB } from '@/lib/mongodb';
 
 export async function POST(req) {
+  await connectMongoDB();
+
+  const { name, email, phone, password } = await req.json();
+
   try {
-    const { name, email, phone, password, oldPassword } = await req.json();
-
-    if (!name || !email || !phone || !password || !oldPassword) {
-      return new Response(
-        JSON.stringify({ error: "All fields are required." }),
-        { status: 400 }
-      );
-    }
-
-    await connectMongoDB();
-
-
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    // ✅ Check if user already exists by email or phone
+    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
     if (existingUser) {
-      return new Response(
-        JSON.stringify({ error: "Email is already registered." }),
-        { status: 400 }
-      );
+      return new Response(JSON.stringify({ error: 'User already exists' }), {
+        status: 400,
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // ✅ Hash the password
+    const hashedPassword = await hash(password, 10);
 
-    const newUser = new User({
+    // ✅ Create new user with otpVerified = false by default
+    const user = await User.create({
       name,
-      email: email.toLowerCase(),
+      email,
       phone,
       password: hashedPassword,
-      oldPassword: hashedPassword, 
+      oldPassword: hashedPassword,
+      otpVerified: false, // new users must verify OTP before login
     });
 
-    await newUser.save();
+    // TODO: send OTP email/SMS here (optional)
 
     return new Response(
-      JSON.stringify({ message: "User registered successfully." }),
+      JSON.stringify({ message: 'User registered successfully' }),
       { status: 201 }
     );
-  } catch (err) {
-    console.error("Error registering user:", err);
+  } catch (error) {
+    console.error('Registration error:', error);
     return new Response(
-      JSON.stringify({ error: "Internal server error." }),
+      JSON.stringify({ error: 'Internal Server Error' }),
       { status: 500 }
     );
   }

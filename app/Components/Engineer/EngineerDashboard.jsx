@@ -46,7 +46,7 @@ const EngineerDashboard = () => {
 
     setSubmittingId(complaintId);
     try {
-      const res = await fetch(`/api/complaint/resolve-reject`, {
+      const res = await fetch(`/api/complaint/resolve-reject/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -189,7 +189,7 @@ const EngineerDashboard = () => {
 
                 <div className="complaints-list">
                   {complaints.map((complaint, index) => {
-                    const complaintId = complaint.complaintid ?? index; // fallback key
+                    const complaintId = complaint.complaintId ?? index; // fallback key
                     const isInProgress = (complaint.status || "").toLowerCase() === "in progress";
                     const isExpanded = expandedComplaint === complaintId;
                     const isSubmitting = submittingId === complaintId;

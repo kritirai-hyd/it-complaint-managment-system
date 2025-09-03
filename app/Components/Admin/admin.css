@@ -384,7 +384,12 @@ body, html {
     top: 1rem;
   }
 }
-
+select{
+  padding: 5px 1rem;
+    background-color: #fff;
+    border: #a7a7a7 1px solid;
+    border-radius: 5px;
+}
 @media (max-width: 480px) {
   .user-info span {
     display: none;

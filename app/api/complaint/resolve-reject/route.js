@@ -2,50 +2,56 @@ import { connectMongoDB } from "@/lib/mongodb";
 import Complaint from "@/models/complaint";
 import nodemailer from "nodemailer";
 
+// POST /api/complaint/resolve-reject
 export async function POST(req) {
-  let body;
+  console.log("✅ POST /api/complaint/resolve-reject hit");
 
-  // Parse JSON body safely
+  let body;
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body." }), { status: 400 });
+    return new Response(JSON.stringify({ error: "Invalid JSON body." }), {
+      status: 400,
+    });
   }
 
   const { id, status, engineerMessage } = body;
   const numericId = Number(id);
 
-  // Validate complaint ID - must be numeric
+  // Validation
   if (!numericId || isNaN(numericId)) {
-    return new Response(JSON.stringify({ error: "Invalid or missing complaint ID." }), {
+    return new Response(
+      JSON.stringify({ error: "Invalid or missing complaint ID." }),
+      { status: 400 }
+    );
+  }
+
+  const allowedStatuses = ["Resolved", "Rejected"];
+  if (!allowedStatuses.includes(status)) {
+    return new Response(JSON.stringify({ error: "Invalid status value." }), {
       status: 400,
     });
   }
 
-  // Validate status value
-  const allowedStatuses = ["Resolved", "Rejected"];
-  if (!allowedStatuses.includes(status)) {
-    return new Response(JSON.stringify({ error: "Invalid status value." }), { status: 400 });
-  }
-
-  // Validate engineer message
   if (!engineerMessage?.trim()) {
-    return new Response(JSON.stringify({ error: "engineer message is required." }), { status: 400 });
+    return new Response(
+      JSON.stringify({ error: "Engineer message is required." }),
+      { status: 400 }
+    );
   }
 
   try {
-    // Connect to MongoDB
     await connectMongoDB();
 
-    // Find complaint by complaintid (numeric)
-    const complaint = await Complaint.findOne({ complaintid: numericId });
+    const complaint = await Complaint.findOne({ complaintId: numericId }); 
     if (!complaint) {
-      return new Response(JSON.stringify({ error: "Complaint not found." }), { status: 404 });
+      return new Response(JSON.stringify({ error: "Complaint not found." }), {
+        status: 404,
+      });
     }
 
-    // Update complaint with new status and engineer message
     const updated = await Complaint.findOneAndUpdate(
-      { complaintid: numericId },
+      { complaintId: numericId },
       {
         status,
         engineerMessage,
@@ -55,60 +61,68 @@ export async function POST(req) {
       { new: true }
     );
 
-    // Determine complaint ID for email (fallback to complaintId or _id string)
     const complaintIdForEmail =
-      updated.complaintid || updated.complaintId || (updated._id ? updated._id.toString() : "Unknown ID");
+      updated.complaintId ||
+      updated.complaintid ||
+      (updated._id ? updated._id.toString() : "Unknown ID");
 
-    // Send email notification to user if email exists
-    if (updated.userEmail) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.EMAIL_HOST,
-          port: Number(process.env.EMAIL_PORT),
-          secure: false,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
+    // Get engineer email from assignedToEmail field
+    const engineerEmail = updated.assignedToEmail;
+    if (!engineerEmail) {
+      return new Response(
+        JSON.stringify({ error: "Assigned engineer email not found." }),
+        { status: 404 }
+      );
+    }
 
-        const mailOptions = {
-          from: `"Support Team" <${process.env.EMAIL_USER}>`,
-          to: updated.userEmail,
-          subject: `Complaint #${complaintIdForEmail} - ${status}`,
-          text: `
-Dear ${updated.name || "Customer"},
+    // Send email to engineer
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: Number(process.env.EMAIL_PORT),
+        secure: Number(process.env.EMAIL_PORT) === 465, // true for 465, false otherwise
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-Your complaint (ID: ${complaintIdForEmail}) has been marked as "${status}".
+      const mailOptions = {
+        from: `"Support Team" <${process.env.EMAIL_USER}>`,
+        to: engineerEmail,
+        subject: `Complaint #${complaintIdForEmail} - ${status}`,
+        text: `
+Dear Engineer,
 
-Message from our support team:
+The complaint (ID: ${complaintIdForEmail}) has been marked as "${status}".
+
+Message from the engineer:
 "${engineerMessage}"
 
-If you need further help, feel free to reply to this email or contact support.
+Please take the necessary action.
 
-Best regards,
+Best regards,  
 Support Team
-          `.trim(),
-        };
+        `.trim(),
+      };
 
-        await transporter.sendMail(mailOptions);
-      } catch (emailErr) {
-        console.error("❌ Failed to send email:", emailErr);
-        // Return 200 because complaint was updated, but email failed
-        return new Response(
-          JSON.stringify({
-            warning: "Complaint updated but email failed to send.",
-            emailError: emailErr.message,
-          }),
-          { status: 200 }
-        );
-      }
+      await transporter.sendMail(mailOptions);
+      console.log("📧 Email sent to engineer:", engineerEmail);
+    } catch (emailErr) {
+      console.error("❌ Failed to send email:", emailErr);
+      return new Response(
+        JSON.stringify({
+          warning: "Complaint updated but email failed to send to engineer.",
+          emailError: emailErr.message,
+        }),
+        { status: 200 }
+      );
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Complaint #${complaintIdForEmail} marked as "${status}". User notified via email.`,
+        message: `Complaint #${complaintIdForEmail} marked as "${status}". Engineer notified via email.`,
       }),
       { status: 200 }
     );

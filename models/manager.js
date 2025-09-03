@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Define allowed roles
+// Allowed roles array (only manager)
 const allowedRoles = ["manager"];
 
 const ManagerSchema = new mongoose.Schema(
@@ -42,20 +42,24 @@ const ManagerSchema = new mongoose.Schema(
       required: [true, "Role is required"],
       enum: {
         values: allowedRoles,
-        message: "Role must be either Manager",
+        message: "Role must be 'manager'",
       },
       lowercase: true,
       trim: true,
     },
+otp: { type: String, select: false },
+otpExpires: { type: Date, select: false },
+otpVerified: { type: Boolean, default: false },
   },
   {
     timestamps: true,
   }
 );
 
+
 ManagerSchema.pre("save", function (next) {
-  this.email = this.email.toLowerCase();
-  this.role = this.role.toLowerCase();
+  if (this.email) this.email = this.email.toLowerCase();
+  if (this.role) this.role = this.role.toLowerCase();
   next();
 });
 

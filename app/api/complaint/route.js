@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import Complaint from "@/models/complaint";
 import cloudinary from "@/lib/cloudinary";
@@ -7,26 +6,19 @@ import fs from "fs/promises";
 import path from "path";
 import { existsSync, mkdirSync } from "fs";
 import { Readable } from "stream";
+import { NextResponse } from "next/server";
 
-// Disable body parsing for formidable to handle multipart/form-data
+// Disable Next.js body parser (we're using formidable)
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// Constants
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_TOTAL_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const MAX_FILE_COUNT = 5;
-const ALLOWED_FILE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "application/pdf",
-];
+// File settings
+const MAX_FILE_COUNT = 10; // Still limiting to avoid abuse
 
-// Utility: Create temp upload directory
+// Utility: Create temporary upload directory
 const createTempDir = () => {
   const tempDir = path.join(process.cwd(), "temp_uploads");
   if (!existsSync(tempDir)) {
@@ -35,18 +27,18 @@ const createTempDir = () => {
   return tempDir;
 };
 
-// Utility: Sanitize filename for safety and consistency
+// Utility: Sanitize file names
 const sanitizeFilename = (filename) => {
   return filename.replace(/[^a-zA-Z0-9-_.]/g, "_").substring(0, 100);
 };
 
-// Normalize form fields to single string trimmed value
+// Normalize form field
 const normalizeField = (field) => {
   if (Array.isArray(field)) return field[0]?.toString().trim() || "";
   return field?.toString().trim() || "";
 };
 
-// Convert Next.js Request to Node.js Readable for formidable
+// Convert Next.js Request to Node.js Readable
 const toNodeReadable = (webReq) => {
   const readable = Readable.from(webReq.body);
   Object.assign(readable, {
@@ -57,7 +49,7 @@ const toNodeReadable = (webReq) => {
   return readable;
 };
 
-// Field validation configuration
+// Field configuration
 const FIELD_CONFIG = {
   Name: { dbField: "name", required: true, maxLength: 100 },
   Email: {
@@ -107,40 +99,19 @@ const validateFields = (fields) => {
   return { cleanData, errors };
 };
 
-// Validate uploaded files
+// Validate files - only max count
 const validateFiles = (files) => {
   const errors = [];
-  let totalSize = 0;
-
   const fileList = Array.isArray(files) ? files : files ? [files] : [];
 
   if (fileList.length > MAX_FILE_COUNT) {
     errors.push(`Maximum ${MAX_FILE_COUNT} files allowed`);
-    return { errors };
   }
 
-  for (const file of fileList) {
-    if (file.size > MAX_FILE_SIZE) {
-      errors.push(`File "${file.originalFilename}" exceeds 5MB limit`);
-      continue;
-    }
-
-    if (!ALLOWED_FILE_TYPES.includes(file.mimetype)) {
-      errors.push(`File type not supported: ${file.originalFilename}`);
-      continue;
-    }
-
-    totalSize += file.size;
-    if (totalSize > MAX_TOTAL_FILE_SIZE) {
-      errors.push("Total attachments size exceeds 20MB limit");
-      break;
-    }
-  }
-
-  return { errors, fileList, totalSize };
+  return { errors, fileList };
 };
 
-// Upload a single file to Cloudinary and clean up temp file
+// Upload to Cloudinary
 const uploadToCloudinary = async (filePath, originalName) => {
   try {
     const safeName = sanitizeFilename(originalName);
@@ -148,7 +119,7 @@ const uploadToCloudinary = async (filePath, originalName) => {
 
     const result = await cloudinary.uploader.upload(filePath, {
       folder: "complaints",
-      resource_type: "auto",
+      resource_type: "auto", // auto-detects file type (image, video, raw)
       public_id: publicId,
       overwrite: false,
     });
@@ -160,6 +131,7 @@ const uploadToCloudinary = async (filePath, originalName) => {
       size: result.bytes,
     };
   } finally {
+    // Clean up temporary file
     try {
       await fs.unlink(filePath);
     } catch (err) {
@@ -168,16 +140,16 @@ const uploadToCloudinary = async (filePath, originalName) => {
   }
 };
 
-// Process multiple attachments
+// Handle all files
 const processAttachments = async (files) => {
   const attachments = [];
 
   for (const file of files) {
     try {
-      const uploadedFile = await uploadToCloudinary(file.filepath, file.originalFilename);
-      attachments.push(uploadedFile);
+      const uploaded = await uploadToCloudinary(file.filepath, file.originalFilename);
+      attachments.push(uploaded);
     } catch (error) {
-      console.error("Failed to upload file:", file.originalFilename, error);
+      console.error("Upload failed:", file.originalFilename, error);
       throw new Error(`Failed to process ${file.originalFilename}`);
     }
   }
@@ -185,19 +157,16 @@ const processAttachments = async (files) => {
   return attachments;
 };
 
-// Parse multipart form data using formidable
+// Parse multipart form data
 const parseFormData = async (nodeReq) => {
   return new Promise((resolve, reject) => {
     const form = formidable({
       multiples: true,
       maxFiles: MAX_FILE_COUNT,
-      maxFileSize: MAX_FILE_SIZE,
+      maxFileSize: Infinity, // Allow any file size
       uploadDir: createTempDir(),
       keepExtensions: true,
-      filter: (part) => {
-        // Allow only allowed mimetypes or no mimetype (form fields)
-        return part.mimetype ? ALLOWED_FILE_TYPES.includes(part.mimetype) : true;
-      },
+      filter: () => true, // Accept all file types
     });
 
     form.parse(nodeReq, (err, fields, files) => {
@@ -210,7 +179,7 @@ const parseFormData = async (nodeReq) => {
   });
 };
 
-// Generate unique 4-digit complaint ID
+// Generate random 4-digit complaint ID
 const generateComplaintId = async () => {
   let attempts = 0;
   while (attempts < 10) {
@@ -222,21 +191,18 @@ const generateComplaintId = async () => {
   throw new Error("Failed to generate unique complaint ID");
 };
 
-// POST handler to submit a new complaint
+// Handle POST request
 export async function POST(req) {
   try {
     await connectMongoDB();
-
-    const nodeReq = toNodeReadable(req); // Convert to Node.js stream
+    const nodeReq = toNodeReadable(req);
     const { fields, files } = await parseFormData(nodeReq);
 
-    // Validate form fields
     const { cleanData, errors: fieldErrors } = validateFields(fields);
     if (fieldErrors.length > 0) {
       return NextResponse.json({ success: false, errors: fieldErrors }, { status: 400 });
     }
 
-    // Validate and process attachments if any
     let attachments = [];
     if (files.files) {
       const { errors: fileErrors, fileList } = validateFiles(files.files);
@@ -246,7 +212,6 @@ export async function POST(req) {
       attachments = await processAttachments(fileList);
     }
 
-    // Create complaint document
     const complaint = new Complaint({
       ...cleanData,
       complaintId: await generateComplaintId(),
@@ -277,7 +242,6 @@ export async function POST(req) {
   }
 }
 
-// GET handler to retrieve complaints
 export async function GET(req) {
   try {
     await connectMongoDB();
@@ -285,15 +249,16 @@ export async function GET(req) {
 
     const email = searchParams.get("email");
     const isAdmin = searchParams.get("admin") === "true";
+    const isManager = searchParams.get("manager") === "true";
 
-    if (!isAdmin && !email) {
+    if (!isAdmin && !isManager && !email) {
       return NextResponse.json(
         { success: false, message: "Email parameter is required" },
         { status: 400 }
       );
     }
 
-    const filter = isAdmin ? {} : { userEmail: email };
+    const filter = (isAdmin || isManager) ? {} : { userEmail: email };
     const status = searchParams.get("status");
     const type = searchParams.get("type");
     const assignedTo = searchParams.get("assignedTo");

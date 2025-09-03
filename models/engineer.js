@@ -47,6 +47,9 @@ const EngineerSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+ otp: { type: String, select: false },
+otpExpires: { type: Date, select: false },
+otpVerified: { type: Boolean, default: false },
   },
   {
     timestamps: true,

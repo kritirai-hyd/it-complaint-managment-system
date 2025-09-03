@@ -13,6 +13,7 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 import "./admin.css";
+
 const AdminDashboard = () => {
   const { data: session, status } = useSession();
   const [complaints, setComplaints] = useState([]);
@@ -22,9 +23,11 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [expandedRow, setExpandedRow] = useState(null);
+
   useEffect(() => {
     fetchComplaints();
   }, []);
+
   const fetchComplaints = async () => {
     setLoading(true);
     try {
@@ -38,9 +41,32 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  const engineers = [
+      { name: "Couponszone", email: "info@couponszone.coin" },
+    { name: "Anada Rai", email: "anada@gmail.com" },
+    { name: "Suraj Bhardwaj", email: "suraj@example.com" },
+    { name: "Vikash Gupta", email: "vikash@example.com" },
+    { name: "Tek Chand", email: "tek@example.com" },
+    { name: "Abhishek Shah", email: "abhishek@example.com" },
+    { name: "Prashanto", email: "prashanto@example.com" },
+    { name: "Aadarsh Dubey", email: "aadarsh@example.com" },
+    { name: "Gaurav Choudary", email: "gaurav@example.com" },
+    { name: "Rahul Kumar", email: "rahul@example.com" },
+  ];
+
   const toggleExpand = (cid) => {
     setExpandedRow((prev) => (prev === cid ? null : cid));
   };
+
+  const handleEngineerSelect = (e, complaintId) => {
+    const [name, email] = e.target.value.split("|");
+    setAssignments((prev) => ({
+      ...prev,
+      [complaintId]: { name, email },
+    }));
+  };
+
   const handleAssign = async (mongoId, complaintId) => {
     const assignData = assignments[complaintId];
     if (!assignData?.name || !assignData?.email) {
@@ -68,6 +94,7 @@ const AdminDashboard = () => {
       alert("❌ " + err.message);
     }
   };
+
   const getStatusBadge = (status) => {
     switch (status.toLowerCase()) {
       case "pending":
@@ -92,6 +119,7 @@ const AdminDashboard = () => {
         return <span className="status-badge">{status}</span>;
     }
   };
+
   const filteredComplaints = complaints.filter((complaint) => {
     const statusMatch =
       activeTab === "all" ||
@@ -105,6 +133,7 @@ const AdminDashboard = () => {
       );
     return statusMatch && searchMatch;
   });
+
   if (status === "loading") {
     return (
       <div className="loading-overlay">
@@ -113,6 +142,7 @@ const AdminDashboard = () => {
       </div>
     );
   }
+
   if (!session) {
     return (
       <div className="unauthorized">
@@ -124,6 +154,7 @@ const AdminDashboard = () => {
       </div>
     );
   }
+
   return (
     <div className="a-dashboard">
       {/* Sidebar */}
@@ -133,22 +164,13 @@ const AdminDashboard = () => {
         </div>
         <nav>
           <Link href="/admin" className="active">
-            <i>
-              <FiHome />
-            </i>
-            <span>Dashboard</span>
+            <i><FiHome /></i><span>Dashboard</span>
           </Link>
           <Link href="/admin/login">
-            <i>
-              <FiUsers />
-            </i>
-            <span>Manager</span>
+            <i><FiUsers /></i><span>Manager</span>
           </Link>
           <Link href="/admin/login">
-            <i>
-              <FiUsers />
-            </i>
-            <span>Engineer Management</span>
+            <i><FiUsers /></i><span>Engineer Management</span>
           </Link>
         </nav>
         <div className="sidebar-footer">
@@ -171,6 +193,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </aside>
+
       {/* Main Content */}
       <main className="main">
         <header className="header">
@@ -184,25 +207,18 @@ const AdminDashboard = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               <button className="search-btn">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
+                <svg width="16" height="16" viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8"></circle>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
               </button>
             </div>
             <div className="user-info">
-              <span>
-                Welcome back, <strong>{session.user.name}</strong>
-              </span>
+              <span>Welcome back, <strong>{session.user.name}</strong></span>
             </div>
           </div>
         </header>
+
         <div className="content-header">
           <h2>Complaints Overview</h2>
           <div className="tabs">
@@ -217,24 +233,14 @@ const AdminDashboard = () => {
             ))}
           </div>
         </div>
+
         <div className="stats-cards">
-          <div className="stat-card">
-            <h3>Total Complaints</h3>
-            <p>{complaints.length}</p>
-          </div>
-          <div className="stat-card">
-            <h3>Pending</h3>
-            <p>{complaints.filter((c) => c.status === "Pending").length}</p>
-          </div>
-          <div className="stat-card">
-            <h3>In Progress</h3>
-            <p>{complaints.filter((c) => c.status === "In Progress").length}</p>
-          </div>
-          <div className="stat-card">
-            <h3>Resolved</h3>
-            <p>{complaints.filter((c) => c.status === "Resolved").length}</p>
-          </div>
+          <div className="stat-card"><h3>Total Complaints</h3><p>{complaints.length}</p></div>
+          <div className="stat-card"><h3>Pending</h3><p>{complaints.filter((c) => c.status === "Pending").length}</p></div>
+          <div className="stat-card"><h3>In Progress</h3><p>{complaints.filter((c) => c.status === "In Progress").length}</p></div>
+          <div className="stat-card"><h3>Resolved</h3><p>{complaints.filter((c) => c.status === "Resolved").length}</p></div>
         </div>
+
         {loading ? (
           <div className="loading-state">
             <div className="spinner"></div>
@@ -288,12 +294,7 @@ const AdminDashboard = () => {
                           <td>{complaint.title || "—"}</td>
                           <td>{complaint.complaintType || "—"}</td>
                           <td>{getStatusBadge(complaint.status)}</td>
-                          <td>
-                            {complaint.assignedTo ||
-                              (complaint.status === "Resolved"
-                                ? "Resolved"
-                                : "Unassigned")}
-                          </td>
+                          <td>{complaint.assignedTo || "—"}</td>
                           <td>—</td>
                         </tr>
                       );
@@ -314,34 +315,27 @@ const AdminDashboard = () => {
                           <td>{complaint.assignedTo || "Unassigned"}</td>
                           <td>
                             <div className="assignment-form">
-                              <input
-                                type="text"
-                                placeholder="Engineer Name"
-                                value={assignment.name}
-                                onChange={(e) =>
-                                  setAssignments((prev) => ({
-                                    ...prev,
-                                    [compId]: {
-                                      ...prev[compId],
-                                      name: e.target.value,
-                                    },
-                                  }))
+                              <select
+                                value={
+                                  assignment.name && assignment.email
+                                    ? `${assignment.name}|${assignment.email}`
+                                    : ""
                                 }
-                              />
-                              <input
-                                type="email"
-                                placeholder="Engineer Email"
-                                value={assignment.email}
                                 onChange={(e) =>
-                                  setAssignments((prev) => ({
-                                    ...prev,
-                                    [compId]: {
-                                      ...prev[compId],
-                                      email: e.target.value,
-                                    },
-                                  }))
+                                  handleEngineerSelect(e, compId)
                                 }
-                              />
+                                className="form-select"
+                              >
+                                <option value="" hidden>Select Engineer</option>
+                                {engineers.map((eng) => (
+                                  <option
+                                    key={eng.email}
+                                    value={`${eng.name}|${eng.email}`}
+                                  >
+                                    {eng.name}
+                                  </option>
+                                ))}
+                              </select>
                               <button
                                 onClick={() => handleAssign(id, compId)}
                                 className="btn btn-primary btn-sm"
@@ -373,10 +367,7 @@ const AdminDashboard = () => {
                               complaint.attachments.length > 0 ? (
                                 <ul>
                                   {complaint.attachments.map((file) => (
-                                    <li
-                                      key={file._id}
-                                      style={{ listStyle: "none" }}
-                                    >
+                                    <li key={file._id}>
                                       <a
                                         href={file.url}
                                         target="_blank"
@@ -389,7 +380,7 @@ const AdminDashboard = () => {
                                 </ul>
                               ) : (
                                 "—"
-                              )}{" "}
+                              )}
                               <br />
                               <br />
                               <strong>Company Address:</strong>{" "}
@@ -413,4 +404,5 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
 export default AdminDashboard;

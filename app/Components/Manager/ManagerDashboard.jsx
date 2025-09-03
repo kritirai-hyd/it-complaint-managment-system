@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import './Manager.css'
+import './Manager.css';
+
 import {
   FiHome,
   FiUsers,
@@ -19,67 +20,149 @@ import {
   FiFilter,
   FiSearch,
   FiSettings,
-  FiLogOut
+  FiLogOut,
+  FiGrid,
+  FiList
 } from "react-icons/fi";
 
+// Helper component to render status badges
+const StatusBadge = ({ status }) => {
+  switch (status) {
+    case "Pending":
+      return (
+        <span className="status-badge status-pending" aria-label="Pending">
+          <FiClock /> Pending
+        </span>
+      );
+    case "In Progress":
+      return (
+        <span className="status-badge status-in-progress" aria-label="In Progress">
+          <FiRefreshCw /> In Progress
+        </span>
+      );
+    case "Resolved":
+      return (
+        <span className="status-badge status-resolved" aria-label="Resolved">
+          <FiCheckCircle /> Resolved
+        </span>
+      );
+    case "Rejected":
+      return (
+        <span className="status-badge status-rejected" aria-label="Rejected">
+          <FiXCircle /> Rejected
+        </span>
+      );
+    default:
+      return <span className="status-badge">Unknown</span>;
+  }
+};
 
 const ManagerDashboard = () => {
   const { data: session, status } = useSession();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedComplaint, setExpandedComplaint] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState("table"); // 'table' or 'card'
 
+  // Debounce search input to improve performance
   useEffect(() => {
-    fetchComplaints();
-  }, []);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
-  const fetchComplaints = async () => {
+
+  const fetchComplaints = useCallback(async () => {
     setLoading(true);
+
     try {
-      const res = await fetch("/api/complaint");
-      if (!res.ok) throw new Error("Failed to fetch complaints");
+      const params = new URLSearchParams();
+      params.append("manager", "true");
+
+      const res = await fetch(`/api/complaint?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("API Error:", res.status, text);
+        throw new Error("Failed to fetch complaints");
+      }
+
       const data = await res.json();
       setComplaints(data.complaints || []);
     } catch (err) {
-      console.error(err);
-      alert("❌ Failed to load complaints.");
+      console.error("Fetch Error:", err);
+      alert("❌ Could not load complaints.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const updateComplaintStatus = async (id, newStatus) => {
+  useEffect(() => {
+    fetchComplaints();
+  }, [fetchComplaints]);
+
+  // Filter complaints by status
+  const resolvedComplaints = complaints.filter(
+    (c) => c.status === "Resolved"
+  );
+  const rejectedComplaints = complaints.filter(
+    (c) => c.status === "Rejected"
+  );
+  const handleAssign = async (mongoId, complaintId) => {
+    const assignData = assignments[complaintId];
+    if (!assignData?.name || !assignData?.email) {
+      alert("⚠️ Please enter both engineer name and email.");
+      return;
+    }
     try {
-      const res = await fetch(`/api/complaint/${id}`, {
-        method: "PUT",
+      const res = await fetch(`/api/complaint/${mongoId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({
+          status: "In Progress",
+          assignedTo: assignData.name.trim(),
+          assignedToEmail: assignData.email.trim().toLowerCase(),
+        }),
       });
-      if (!res.ok) throw new Error("Failed to update complaint");
-      fetchComplaints(); // Refresh the list
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Assignment failed");
+      }
+      alert("✅ Complaint assigned successfully");
+      fetchComplaints();
     } catch (err) {
-      console.error(err);
-      alert("❌ Failed to update complaint.");
+      console.error("Assignment Error:", err);
+      alert("❌ " + err.message);
     }
   };
 
+
+  // Toggle complaint details open/close
   const toggleComplaintDetails = (id) => {
     setExpandedComplaint(expandedComplaint === id ? null : id);
   };
 
-  const filteredComplaints = complaints.filter(complaint => {
-    const matchesSearch = 
-      complaint.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.complaintid?.toString().includes(searchTerm.toLowerCase()) ||
-      complaint.complaintType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      complaint.assignedTo?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+  // Filter complaints by search term and status filter
+  const filteredComplaints = complaints.filter((complaint) => {
+    const searchText = debouncedSearch.toLowerCase();
+    const matchesSearch =
+      complaint.name?.toLowerCase().includes(searchText) ||
+      complaint.complaintid?.toString().includes(searchText) ||
+      complaint.complaintType?.toLowerCase().includes(searchText) ||
+      complaint.assignedTo?.toLowerCase().includes(searchText);
+
     const matchesStatus = statusFilter === "All" || complaint.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -88,11 +171,11 @@ const ManagerDashboard = () => {
   if (!session) {
     return (
       <div className="unauthorized">
-        <div className="unauthorized-card">
+        <div className="unauthorized-card" role="alert" aria-live="assertive">
           <FiAlertCircle size={48} className="text-danger" />
           <h2>Access Denied</h2>
           <p>You must be logged in to view this page.</p>
-          <Link href="/login" className="btn btn-primary">
+          <Link href="/login" className="btn btn-primary" aria-label="Go to Login page">
             Go to Login
           </Link>
         </div>
@@ -102,35 +185,43 @@ const ManagerDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <aside className="sidebar">
+      {/* Sidebar Navigation */}
+      <aside className="sidebar" aria-label="Sidebar Navigation">
         <div className="sidebar-header">
           <div className="logo">
             <span>Manager Dashboard</span>
           </div>
         </div>
-        
-        <nav className="sidebar-nav">
-          <Link href="/admin" className="nav-link active">
-            <i className="nav-icon"><FiHome /></i>
+
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          <Link href="/admin" className="nav-link active" aria-current="page">
+            <i className="nav-icon">
+              <FiHome />
+            </i>
             <span>Dashboard</span>
           </Link>
           <Link href="/manager/login" className="nav-link">
-            <i className="nav-icon"><FiUsers /></i>
+            <i className="nav-icon">
+              <FiUsers />
+            </i>
             <span>Manager</span>
           </Link>
           <Link href="/manager/engineer" className="nav-link">
-            <i className="nav-icon"><FiUsers /></i>
+            <i className="nav-icon">
+              <FiUsers />
+            </i>
             <span>Engineers</span>
           </Link>
         </nav>
-        
+
+        {/* Sidebar Footer - User info and Logout */}
         <div className="sidebar-footer">
-          <div className="user-profile">
+          <div className="user-profile" aria-label="User Profile">
             <Image
-              src={session.user.image || "/default-avatar.png"}
+              src={session.user.image || ""}
               width={40}
               height={40}
-              alt="User"
+              alt={`${session.user.name} avatar`}
               className="user-avatar"
             />
             <div className="user-details">
@@ -138,76 +229,121 @@ const ManagerDashboard = () => {
               <span>Manager</span>
             </div>
           </div>
-          <Link href="/logout" className="logout-btn">
+          <Link href="/logout" className="logout-btn" aria-label="Sign Out">
             <FiLogOut /> Sign Out
           </Link>
         </div>
       </aside>
 
-      <main className="main-content">
+      {/* Main Content Area */}
+      <main className="main-content" role="main">
         <header className="content-header">
-          <h1>Complaint Management</h1>
-       
+          <h1 tabIndex={-1}>Complaint Management</h1>
         </header>
 
+        {/* Controls: Search, Filter, View Mode */}
         <div className="dashboard-controls">
           <div className="search-bar">
-            <FiSearch className="search-icon" />
-            <input 
-              type="text" 
-              placeholder="Search complaints..." 
+            <FiSearch className="search-icon" aria-hidden="true" />
+            <input
+              type="search"
+              placeholder="Search complaints..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search complaints"
+              disabled={loading}
             />
           </div>
 
           <div className="filter-dropdown">
-            <button 
+            <button
               className="filter-toggle"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
+              aria-haspopup="listbox"
+              aria-expanded={isFilterOpen}
+              aria-label="Filter complaints by status"
+              disabled={loading}
             >
               <FiFilter /> {statusFilter} {isFilterOpen ? <FiChevronUp /> : <FiChevronDown />}
             </button>
             {isFilterOpen && (
-              <div className="filter-options">
-                <button onClick={() => { setStatusFilter("All"); setIsFilterOpen(false); }}>All</button>
-                <button onClick={() => { setStatusFilter("Pending"); setIsFilterOpen(false); }}>Pending</button>
-                <button onClick={() => { setStatusFilter("In Progress"); setIsFilterOpen(false); }}>In Progress</button>
-                <button onClick={() => { setStatusFilter("Resolved"); setIsFilterOpen(false); }}>Resolved</button>
-                <button onClick={() => { setStatusFilter("Rejected"); setIsFilterOpen(false); }}>Rejected</button>
+              <div className="filter-options" role="listbox" tabIndex={-1}>
+                {["All", "Pending", "In Progress", "Resolved", "Rejected"].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      setStatusFilter(status);
+                      setIsFilterOpen(false);
+                    }}
+                    role="option"
+                    aria-selected={statusFilter === status}
+                    className={statusFilter === status ? "active" : ""}
+                  >
+                    {status}
+                  </button>
+                ))}
               </div>
             )}
           </div>
+
+          <div className="view-mode-toggle" role="group" aria-label="Toggle view mode">
+            <button
+              onClick={() => setViewMode("table")}
+              aria-pressed={viewMode === "table"}
+              aria-label="Table view"
+              disabled={loading}
+              className={viewMode === "table" ? "active" : ""}
+            >
+              <FiGrid /> Table
+            </button>
+            <button
+              onClick={() => setViewMode("card")}
+              aria-pressed={viewMode === "card"}
+              aria-label="Card view"
+              disabled={loading}
+              className={viewMode === "card" ? "active" : ""}
+            >
+              <FiList /> Card
+            </button>
+          </div>
         </div>
 
-        <div className="complaints-container">
+        {/* Complaints Listing */}
+        <div className="complaints-container" aria-live="polite" aria-relevant="additions removals">
           {loading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
+            <div className="loading-state" role="status" aria-live="polite">
+              <div className="spinner" aria-hidden="true"></div>
               <p>Loading complaints...</p>
             </div>
           ) : filteredComplaints.length === 0 ? (
-            <div className="empty-state">
-              <FiAlertCircle size={48} />
+            <div className="empty-state" role="alert" aria-live="assertive">
+              <FiAlertCircle size={48} aria-hidden="true" />
               <h3>No complaints found</h3>
               <p>Try adjusting your search or filter criteria.</p>
-              <button onClick={() => { setSearchTerm(""); setStatusFilter("All"); }} className="btn btn-primary">
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("All");
+                }}
+                className="btn btn-primary"
+                aria-label="Reset filters"
+              >
                 Reset Filters
               </button>
             </div>
           ) : viewMode === "table" ? (
             <div className="table-responsive">
-              <table className="complaints-table">
+              <table className="complaints-table" role="table" aria-label="Complaints table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Customer</th>
-                    <th>Phone</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Assigned To</th>
-                    <th>Created At</th>
-                    <th>Actions</th>
+                    <th scope="col">ID</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Assigned To</th>
+                    <th scope="col">Created At</th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,40 +355,25 @@ const ManagerDashboard = () => {
                         <td>{complaint.phone || "—"}</td>
                         <td>{complaint.complaintType || "—"}</td>
                         <td>
-                          {complaint.status === "Pending" && (
-                            <span className="status-badge status-pending">
-                              <FiClock /> Pending
-                            </span>
-                          )}
-                          {complaint.status === "In Progress" && (
-                            <span className="status-badge status-in-progress">
-                              <FiRefreshCw /> In Progress
-                            </span>
-                          )}
-                          {complaint.status === "Resolved" && (
-                            <span className="status-badge status-resolved">
-                              <FiCheckCircle /> Resolved
-                            </span>
-                          )}
-                          {complaint.status === "Rejected" && (
-                            <span className="status-badge status-rejected">
-                              <FiXCircle /> Rejected
-                            </span>
-                          )}
+                          <StatusBadge status={complaint.status} />
                         </td>
                         <td>{complaint.assignedTo || "Unassigned"}</td>
                         <td>{new Date(complaint.createdAt).toLocaleDateString()}</td>
                         <td>
-                          <button 
+                          <button
                             onClick={() => toggleComplaintDetails(complaint._id)}
                             className="btn btn-sm btn-details"
+                            aria-expanded={expandedComplaint === complaint._id}
+                            aria-controls={`complaint-details-${complaint._id}`}
+                            aria-label={`Toggle details for complaint #${complaint.complaintid || complaint._id}`}
+                            disabled={loading}
                           >
                             {expandedComplaint === complaint._id ? <FiChevronUp /> : <FiChevronDown />} Details
                           </button>
                         </td>
                       </tr>
                       {expandedComplaint === complaint._id && (
-                        <tr className="details-row">
+                        <tr className="details-row" id={`complaint-details-${complaint._id}`}>
                           <td colSpan="8">
                             <div className="complaint-details">
                               <div className="detail-section">
@@ -289,7 +410,6 @@ const ManagerDashboard = () => {
                                   <p>{complaint.resolutionMessage}</p>
                                 </div>
                               )}
-                          
                             </div>
                           </td>
                         </tr>
@@ -302,8 +422,24 @@ const ManagerDashboard = () => {
           ) : (
             <div className="complaints-list">
               {filteredComplaints.map((complaint) => (
-                <div key={complaint._id} className="complaint-card">
-                  <div className="complaint-header" onClick={() => toggleComplaintDetails(complaint._id)}>
+                <div
+                  key={complaint._id}
+                  className="complaint-card"
+                  aria-expanded={expandedComplaint === complaint._id}
+                >
+                  <div
+                    className="complaint-header"
+                    onClick={() => toggleComplaintDetails(complaint._id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        toggleComplaintDetails(complaint._id);
+                      }
+                    }}
+                    aria-controls={`complaint-details-card-${complaint._id}`}
+                    aria-expanded={expandedComplaint === complaint._id}
+                  >
                     <div className="complaint-id">#{complaint.complaintid || complaint._id}</div>
                     <div className="complaint-customer">
                       <strong>{complaint.name}</strong>
@@ -311,37 +447,20 @@ const ManagerDashboard = () => {
                     </div>
                     <div className="complaint-type">{complaint.complaintType || "—"}</div>
                     <div className="complaint-status">
-                      {complaint.status === "Pending" && (
-                        <span className="status-badge status-pending">
-                          <FiClock /> Pending
-                        </span>
-                      )}
-                      {complaint.status === "In Progress" && (
-                        <span className="status-badge status-in-progress">
-                          <FiRefreshCw /> In Progress
-                        </span>
-                      )}
-                      {complaint.status === "Resolved" && (
-                        <span className="status-badge status-resolved">
-                          <FiCheckCircle /> Resolved
-                        </span>
-                      )}
-                      {complaint.status === "Rejected" && (
-                        <span className="status-badge status-rejected">
-                          <FiXCircle /> Rejected
-                        </span>
-                      )}
+                      <StatusBadge status={complaint.status} />
                     </div>
-                    <div className="complaint-assigned">
-                      {complaint.assignedTo || "Unassigned"}
-                    </div>
+                    <div className="complaint-assigned">{complaint.assignedTo || "Unassigned"}</div>
                     <div className="complaint-toggle">
                       {expandedComplaint === complaint._id ? <FiChevronUp /> : <FiChevronDown />}
                     </div>
                   </div>
 
                   {expandedComplaint === complaint._id && (
-                    <div className="complaint-details">
+                    <div
+                      className="complaint-details"
+                      id={`complaint-details-card-${complaint._id}`}
+                      tabIndex={-1}
+                    >
                       <div className="detail-row">
                         <span className="detail-label">Description:</span>
                         <p className="detail-value">{complaint.description || "No description provided"}</p>
@@ -378,57 +497,12 @@ const ManagerDashboard = () => {
                           <span className="detail-value">{complaint.resolutionMessage}</span>
                         </div>
                       )}
-                      <div className="complaint-actions">
-                        {complaint.status === "Pending" && (
-                          <button
-                            onClick={() => updateComplaintStatus(complaint._id, "In Progress")}
-                            className="btn btn-action btn-start"
-                          >
-                            <FiPlay /> Start Work
-                          </button>
-                        )}
-                        {complaint.status === "In Progress" && (
-                          <button
-                            onClick={() => updateComplaintStatus(complaint._id, "Resolved")}
-                            className="btn btn-action btn-resolve"
-                          >
-                            <FiCheckCircle /> Mark Resolved
-                          </button>
-                        )}
-                        {(complaint.status === "Pending" || complaint.status === "In Progress") && (
-                          <button
-                            onClick={() => updateComplaintStatus(complaint._id, "Rejected")}
-                            className="btn btn-action btn-reject"
-                          >
-                            <FiXCircle /> Reject
-                          </button>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           )}
-        </div>
-
-        <div className="stats-summary">
-          <div className="stat-card">
-            <div className="stat-value">{complaints.length}</div>
-            <div className="stat-label">Total Complaints</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{complaints.filter(c => c.status === "Pending").length}</div>
-            <div className="stat-label">Pending</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{complaints.filter(c => c.status === "In Progress").length}</div>
-            <div className="stat-label">In Progress</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{complaints.filter(c => c.status === "Resolved").length}</div>
-            <div className="stat-label">Resolved</div>
-          </div>
         </div>
       </main>
     </div>

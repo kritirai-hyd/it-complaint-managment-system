@@ -1,141 +1,37 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import axios from "axios";
-import Link from "next/link";
-import "../../assets/register.css";
+import { useState } from 'react';
 
-const Register = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    oldPassword: "",
-  });
+export default function RegisterPage() {
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', oldPassword: '' });
+  const [message, setMessage] = useState('');
 
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-    setMessage("");
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.oldPassword) {
-      setMessage("Passwords do not match.");
-      setMessageType("error");
-      return;
-    }
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      body: JSON.stringify(form),
+    });
 
-    try {
-      setLoading(true);
-      const res = await axios.post("/api/register", formData);
-      setMessage("Registered successfully!");
-  
-    } catch (err) {
-      setMessage(err.response?.data?.error || "Registration failed.");
-      setMessageType("error");
-    } finally {
-      setLoading(false);
-    }
+    const data = await res.json();
+    setMessage(data.message || data.error);
   };
 
-  const isFormValid =
-    formData.name &&
-    formData.email &&
-    formData.phone &&
-    formData.password &&
-    formData.oldPassword;
-
   return (
-    <div className="register-container">
-      <div className="register-card">
-        <div className="register-header">
-     <h2>Create User Account</h2>
-      </div>
-      <form onSubmit={handleSubmit} className="register-form">
-        <div className="form-group">
-        <label htmlFor="name">Name</label>
-        <input
-          name="name"
-          id="name"
-          required
-           placeholder="Enter your full name"
-          value={formData.name}
-          onChange={handleChange}
-        />
-</div>
-  <div className="form-group">
-        <label htmlFor="email">Email</label>
-        <input
-          type="email"
-          name="email"
-          id="email"
-          placeholder="Enter your email"
-          required
-          value={formData.email}
-          onChange={handleChange}
-        /></div>
-  <div className="form-group">
-        <label htmlFor="phone">Phone</label>
-        <input
-          name="phone"
-          id="phone"
-             placeholder="Enter your phone number"
-          required
-          value={formData.phone}
-          onChange={handleChange}
-        /></div>
-  <div className="form-group">
-        <label htmlFor="password">Password</label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-             placeholder="Create a password (min 6 characters)"
-          required
-          value={formData.password}
-          onChange={handleChange}
-        /></div>
-  <div className="form-group">
-        <label htmlFor="oldPassword">Confirm Password</label>
-        <input
-          type="password"
-          name="oldPassword"
-          id="oldPassword"
-           placeholder="Confirm your password"
-          required
-          value={formData.oldPassword}
-          onChange={handleChange}
-        />
-</div>
-        {message && (
-          <p className={messageType === "success" ? "success-message" : "error-message"}>
-            {message}
-          </p>
-        )}
-
-        <button type="submit" className="register-button" disabled={!isFormValid || loading}>
-          {loading ? "Registering..." : "Register"}
-        </button>
+    <div className="p-6 max-w-md mx-auto">
+      <h2 className="text-xl mb-4">Register</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <input name="name" placeholder="Name" onChange={handleChange} required />
+        <input name="email" placeholder="Email" onChange={handleChange} required />
+        <input name="phone" placeholder="Phone" onChange={handleChange} required />
+        <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
+           <input type="password" name="oldPassword" placeholder="Password" onChange={handleChange} required />
+        <button type="submit" className="bg-blue-500 text-white py-2">Register</button>
       </form>
-
-      <div className="login-link">
-        Already have an account? <Link href="/login">Login here</Link>
-      </div>
-      </div>
+      {message && <p className="mt-4 text-sm">{message}</p>}
     </div>
   );
-};
-
-export default Register;
+}

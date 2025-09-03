@@ -58,31 +58,23 @@ const ManagerLogin = () => {
   };
 
   return (
-    <div className="dashboard">
+  <div className="dashboard">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <h2 className="logo">Backend Login Dashboard</h2>
-        <nav>
-         
-          <a href="/admin/login" className="active">Admin</a>
-          <a href="/manager/login">Manager</a>
-          <a href="/engineer/login">Engineer</a>
-        </nav>
-      </aside>
+   
 
       {/* Main Content */}
       <div className="main">
         <header className="header">
           <h1>Backend Login Dashboard</h1>
           <div className="user-info">
-            <span>Welcome, Manager</span>
+            <span>Welcome, Backend Login</span>
             <Image src={a} width={40} height={40}  alt="User" />
           </div>
         </header>
 
         {/* Login Form */}
         <div className="login-container">
-          <h2>Manager Login</h2>
+          <h2>Backend Login</h2>
           <form onSubmit={handleSubmit}>
             <label htmlFor="email">Email</label>
             <input
@@ -127,9 +119,9 @@ const ManagerLogin = () => {
             </button>
           </form>
 
-          {/* <div className="register-link">
-            Don't have an account? <Link href="/manager/register">Register here</Link>
-          </div> */}
+          <div className="register-link">
+            Don't have an account? <Link href="/admin/register">Register here</Link>
+          </div>
         </div>
       </div>
     </div>
@@ -137,3 +129,4 @@ const ManagerLogin = () => {
 };
 
 export default ManagerLogin;
+

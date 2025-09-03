@@ -23,15 +23,19 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password is required"],
-      select: false, 
+      select: false,
     },
     oldPassword: {
       type: String,
       select: false,
     },
+otp: { type: String, select: false },
+otpExpires: { type: Date, select: false },
+otpVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
+
 export default User;
