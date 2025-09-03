@@ -1,5 +1,4 @@
 import { connectMongoDB } from "@/lib/mongodb";
-import Manager from "@/models/manager";
 import bcrypt from "bcryptjs";
 
 export async function POST(req) {

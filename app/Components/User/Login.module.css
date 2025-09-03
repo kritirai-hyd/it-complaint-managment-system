@@ -1,0 +1,221 @@
+.loginContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 440px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.loginHeader {
+  padding: 32px 32px 24px;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.loginHeader h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.loginHeader p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.loginForm {
+  padding: 32px;
+}
+
+.inputGroup {
+  margin-bottom: 20px;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.inputGroup input,
+.inputGroup select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.otpLink {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin: -8px 0 20px;
+  text-decoration: underline;
+}
+
+.otpLink:hover {
+  color: #3730a3;
+}
+
+.otpLink:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.otpContainer {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.otpHeader {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.otpHeader h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #1a1a1a;
+}
+
+.otpHeader p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.otpResend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.otpResend p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.otpResend button {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.otpResend button:hover {
+  color: #3730a3;
+}
+
+.otpResend button:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 14px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background-color: #3730a3;
+}
+
+.submitButton:disabled {
+  background-color: #a5a5a5;
+  cursor: not-allowed;
+}
+
+.message {
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.success {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.error {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+@media (max-width: 480px) {
+  .loginCard {
+    border-radius: 12px;
+  }
+  
+  .loginHeader,
+  .loginForm {
+    padding: 24px;
+  }
+}.cardFooter {
+  padding: 20px;
+  text-align: center;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cardFooter p {
+  margin: 0;
+  color: #718096;
+  font-size: 14px;
+}
+
+.cardFooter a {
+  color: #0044ff;
+  text-decoration: none;
+}
+
+.cardFooter a:hover {
+  text-decoration: underline;
+}

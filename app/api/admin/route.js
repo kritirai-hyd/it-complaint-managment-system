@@ -4,8 +4,7 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req) {
   try {
-    const register = await req.json();
-    const { name, email, phone, password, role } = register;
+    const { name, email, phone, password, role } = await req.json();
 
     if (!name || !email || !phone || !password || !role) {
       return new Response(
@@ -14,7 +13,7 @@ export async function POST(req) {
       );
     }
 
-    const allowedRoles = ["admin"];
+    const allowedRoles = ["admin", "manager", "engineer"];
     if (!allowedRoles.includes(role.toLowerCase())) {
       return new Response(
         JSON.stringify({ error: "Invalid role" }),
@@ -30,6 +29,7 @@ export async function POST(req) {
     const existingAdmin = await Admin.findOne({
       $or: [{ email: trimmedEmail }, { phone: trimmedPhone }],
     });
+
     if (existingAdmin) {
       return new Response(
         JSON.stringify({ error: "Email or phone number already used" }),
@@ -44,7 +44,7 @@ export async function POST(req) {
       email: trimmedEmail,
       phone: trimmedPhone,
       password: hashPassword,
-      oldPassword: null, // optional: can also be omitted entirely
+      oldPassword: null,
       role: role.toLowerCase(),
     });
 

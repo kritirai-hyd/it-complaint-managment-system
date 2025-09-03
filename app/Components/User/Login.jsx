@@ -1,286 +1,216 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
-import './Login.css';
-import Link from 'next/link';
-export default function LoginPage() {
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ 
-    email: '', 
-    password: '', 
-    otp: '',
-    role: 'user'
-  });
-  const [message, setMessage] = useState({ text: '', type: '' });
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const otpInputRef = useRef(null);
+import { useRouter } from 'next/navigation';
+import styles from './Login.module.css';
 
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState(1);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+  const otpRef = useRef(null);
+
+  // Focus OTP input when OTP step is active
   useEffect(() => {
-    if (step === 2 && otpInputRef.current) {
-      otpInputRef.current.focus();
+    if (step === 2 && otpRef.current) {
+      otpRef.current.focus();
     }
   }, [step]);
 
-  const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
+  // Handle login or OTP verification
   const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage({ text: '', type: '' });
     setLoading(true);
+    setMessage('');
 
-    try {
-      const res = await signIn('credentials', {
-        redirect: false,
-        email: form.email.trim(),
-        password: form.password.trim(),
-        role: form.role,
-      });
+const res = await signIn('credentials', {
+  redirect: false,
+  email: email.trim(),
+  password,
+  role: 'user', // ✅ Always send user role
+  ...(step === 2 ? { otp: otp.trim() } : {}),
+});
 
-      if (res?.error) {
-        if (res.error.includes('OTP_REQUIRED')) {
+
+    setLoading(false);
+
+    if (res?.error) {
+      try {
+        const errObj = JSON.parse(res.error);
+        if (errObj.code === 'OTP_REQUIRED') {
           setStep(2);
-          setMessage({ 
-            text: 'We sent a 6-digit OTP to your email. Please check your inbox.', 
-            type: 'info' 
-          });
-          return;
+          setMessage('✅ OTP sent to your email. Please enter it below.');
+        } else {
+          setMessage(errObj.message || '❌ Login failed.');
         }
-        throw new Error(res.error);
+      } catch {
+        setMessage(res.error);
       }
-
-      if (res?.ok) {
-        router.push(`/${form.role}/dashboard`);
-      }
-    } catch (error) {
-      setMessage({ 
-        text: error.message || 'Login failed. Please try again.', 
-        type: 'error' 
-      });
-    } finally {
-      setLoading(false);
+    } else {
+router.push('/user/dashboard');
     }
   };
 
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    setMessage({ text: '', type: '' });
+  // Send OTP manually
+  const handleAskOtp = async () => {
     setLoading(true);
+    setMessage('');
 
-    try {
-      const res = await signIn('credentials', {
-        redirect: false,
-        email: form.email.trim(),
-        password: form.password.trim(),
-        role: form.role,
-        otp: form.otp.trim(),
-      });
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ email: email.trim(), role: 'user' }),
+    });
 
-      if (res?.error) {
-        throw new Error(res.error);
-      }
+    const data = await res.json();
+    setLoading(false);
 
-      if (res?.ok) {
-        router.push(`/${form.role}/dashboard`);
-      }
-    } catch (error) {
-      setMessage({ 
-        text: error.message || 'OTP verification failed', 
-        type: 'error' 
-      });
-    } finally {
-      setLoading(false);
+    if (res.ok) {
+      setStep(2); // Move to OTP step immediately
+      setMessage('✅ OTP sent to your email. Please enter it below.');
+    } else {
+      setMessage(data?.error || '❌ Failed to send OTP.');
     }
   };
 
-  const handleResendOTP = async () => {
-    setMessage({ text: '', type: '' });
-    setLoading(true);
-    setForm(prev => ({ ...prev, otp: '' }));
+const handleResendOtp = async () => {
+  setLoading(true);
+  setMessage('');
 
-    try {
-      const res = await signIn('credentials', {
-        redirect: false,
-        email: form.email.trim(),
-        password: form.password.trim(),
-        role: form.role,
-      });
+  const res = await fetch('/api/auth/send-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim(), role: 'user' }), // ✅ FIXED
+  });
 
-      if (res?.error && res.error.includes('OTP_REQUIRED')) {
-        setMessage({ 
-          text: 'New OTP sent to your email.', 
-          type: 'info' 
-        });
-      } else if (res?.error) {
-        throw new Error(res.error);
-      }
-    } catch (error) {
-      setMessage({ 
-        text: error.message || 'Failed to resend OTP', 
-        type: 'error' 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const data = await res.json();
+  setLoading(false);
+
+  if (res.ok) {
+    setMessage('✅ OTP resent. Check your inbox.');
+  } else {
+    setMessage(data?.error || '❌ Failed to resend OTP.');
+  }
+};
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1 className="login-title">
-            {step === 1 ? 'Welcome Back' : 'Verify Your Identity'}
-          </h1>
-          <p className="login-subtitle">
-            {step === 1 ? 'Sign in to your account' : 'Enter your verification code'}
-          </p>
+    <div className={styles.loginContainer}>
+      <div className={styles.loginCard}>
+        <div className={styles.loginHeader}>
+      <h2>User Login</h2>
+          <p>Welcome back! Please enter your details to sign in.</p>
         </div>
 
-        <div className="login-content">
-          {message.text && (
-            <div className={`message message-${message.type}`}>
-              {message.text}
+        <form onSubmit={handleLogin} className={styles.loginForm}>
+          {/* Step 1 Inputs */}
+          {step === 1 && (
+            <>
+              <div className={styles.inputGroup}>
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+           
+
+              <button
+                type="button"
+                onClick={handleAskOtp}
+                disabled={!email || loading}
+                className={styles.otpLink}
+              >
+                {loading ? 'Sending OTP...' : 'Send OTP to Email'}
+              </button>
+            </>
+          )}
+
+          {/* Step 2 - OTP Input */}
+          {step === 2 && (
+            <div className={styles.otpContainer}>
+              <div className={styles.otpHeader}>
+                <h3>Verification Required</h3>
+                <p>We've sent a 6-digit code to your email</p>
+              </div>
+              
+              <div className={styles.inputGroup}>
+                <label htmlFor="otp">Enter verification code</label>
+                <input
+                  ref={otpRef}
+                  id="otp"
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  maxLength={6}
+                  pattern="\d{6}"
+                  inputMode="numeric"
+                  required
+                />
+              </div>
+              
+              <div className={styles.otpResend}>
+                <p>Didn't receive the code?</p>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={loading}
+                >
+                  {loading ? 'Sending...' : 'Resend code'}
+                </button>
+              </div>
             </div>
           )}
 
-          {step === 1 ? (
-            <form onSubmit={handleLogin}>
-              <div className="form-group">
-                <label htmlFor="email" className="form-label">Email Address</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-              </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className={styles.submitButton}
+          >
+            {loading
+              ? step === 1
+                ? 'Logging in...'
+                : 'Verifying...'
+              : step === 1
+              ? 'Login'
+              : 'Verify & Login'}
+          </button>
 
-              <div className="form-group">
-                <label htmlFor="password" className="form-label">Password</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-                  className="form-input"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn btn-primary"
-              >
-                {loading ? (
-                  <>
-                    <svg className="spinner" style={{ width: '1rem', height: '1rem' }} viewBox="0 0 24 24">
-                      <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOTP}>
-              <div className="form-group">
-                <label htmlFor="otp" className="form-label">Verification Code</label>
-                <input
-                  id="otp"
-                  name="otp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="Enter 6-digit code"
-                  value={form.otp}
-                  onChange={handleChange}
-                  required
-                  maxLength={6}
-                  ref={otpInputRef}
-                  className="form-input otp-input"
-                />
-                <p style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                  Enter the verification code sent to your email
-                </p>
-              </div>
-
-              <div className="flex-buttons">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  disabled={loading}
-                  className="btn btn-secondary"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary"
-                >
-                  {loading ? (
-                    <>
-                      <svg className="spinner" style={{ width: '1rem', height: '1rem' }} viewBox="0 0 24 24">
-                        <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Verifying...
-                    </>
-                  ) : (
-                    'Verify'
-                  )}
-                </button>
-              </div>
-
-              <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                <button
-                  type="button"
-                  onClick={handleResendOTP}
-                  disabled={loading}
-                  style={{ 
-                    background: 'none',
-                    border: 'none',
-                    color: '#4361ee',
-                    fontWeight: '500',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Didn't receive a code? Resend OTP
-                </button>
-              </div>
-            </form>
+          {/* Message Output */}
+          {message && (
+            <div className={`${styles.message} ${message.toLowerCase().includes('success') || message.includes('✅') ? styles.success : styles.error}`}>
+              {message}
+            </div>
           )}
-
-
-        </div>
-
-        <div className="login-footer">
-          <p className="footer-text">
-            {step === 1 ? (
-              <>
-                Don't have an account?{' '}
-                <Link href="/register" className="footer-link">Register</Link>
-              </>
-            ) : (
-              'Having trouble with verification? Contact support'
-            )}
-          </p>
-        </div>
+        </form>
+            <div className={styles.cardFooter}>
+            <p>Having trouble signing in? <a href="/register">Register here</a></p>
+          </div>
       </div>
     </div>
   );

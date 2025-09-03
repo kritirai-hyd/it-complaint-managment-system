@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
-// Define allowed roles
-const allowedRoles = ["admin"];
+const allowedRoles = ["admin", "manager", "engineer"];
 
 const AdminSchema = new mongoose.Schema(
   {
@@ -42,14 +41,15 @@ const AdminSchema = new mongoose.Schema(
       required: [true, "Role is required"],
       enum: {
         values: allowedRoles,
-        message: "Role must be either admin",
+        message: "Role must be one of: admin, manager, engineer",
       },
       lowercase: true,
       trim: true,
     },
-otp: { type: String, select: false },
-otpExpires: { type: Date, select: false },
-otpVerified: { type: Boolean, default: false },
+    otp: { type: String, select: false },
+    otpExpires: { type: Date, select: false },
+    otpVerified: { type: Boolean, select: false, default: false },
+    otpRequired: { type: Boolean, select: false, default: false },
   },
   {
     timestamps: true,
@@ -63,5 +63,4 @@ AdminSchema.pre("save", function (next) {
 });
 
 const Admin = mongoose.models.Admin || mongoose.model("Admin", AdminSchema);
-
 export default Admin;

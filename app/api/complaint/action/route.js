@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import Complaint from "@/models/complaint";
-import Engineer from "@/models/engineer";
 import { connectMongoDB } from "@/lib/mongodb";
 import nodemailer from "nodemailer";
 

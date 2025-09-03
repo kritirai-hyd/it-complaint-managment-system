@@ -29,13 +29,22 @@ const UserSchema = new mongoose.Schema(
       type: String,
       select: false,
     },
-otp: { type: String, select: false },
-otpExpires: { type: Date, select: false },
-otpVerified: { type: Boolean, default: false },
+    otp: {
+      type: String,
+      select: true,
+    },
+    otpExpires: {
+      type: Date,
+      select: true,
+    },
+    otpVerified: {
+      type: Boolean,
+      default: false,
+    },
+        otpRequired: { type: Boolean, select: false, default: false },
   },
   { timestamps: true }
 );
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
-
 export default User;

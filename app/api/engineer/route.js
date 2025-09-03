@@ -1,5 +1,5 @@
 import { connectMongoDB } from "@/lib/mongodb";
-import Engineer from "@/models/engineer"; // ✅ make sure this exists
+
 import bcrypt from "bcryptjs";
 
 export async function POST(req) {

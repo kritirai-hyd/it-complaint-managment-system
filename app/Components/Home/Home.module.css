@@ -1,0 +1,297 @@
+
+/* Header Styles */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--white);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logoText {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.nav {
+  /* Added to contain the nav-list */
+}
+
+.navList {
+  display: flex;
+  list-style: none;
+  gap: 1.5rem;
+}
+
+.navItem {
+  display: inline-block;
+}
+
+.navLink {
+  text-decoration: none;
+  color: var(--text-color);
+  font-weight: 500;
+  transition: color 0.2s;
+  padding: 0.7rem 1.5rem;
+  position: relative;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(46, 46, 46, 0.3);
+}
+
+.navLink:hover {
+  color: var(--primary-color);
+  background: rgba(67, 97, 238, 0.1);
+}
+
+/* Main Content Styles */
+.mainContent {
+  display: flex;
+  min-height: calc(100vh - 150px);
+  padding: 2rem;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.loginCard {
+  flex: 1;
+  max-width: 450px;
+  background: var(--white);
+  padding: 2.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.cardHeader {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.cardHeader h2 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.cardHeader p {
+  color: var(--light-text);
+  font-size: 0.9rem;
+}
+
+/* Form Styles */
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formLabel {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.formInput {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+}
+
+.passwordInputContainer {
+  position: relative;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--light-text);
+  padding: 0.25rem;
+}
+
+.forgotPassword {
+  text-align: right;
+  margin-top: -0.5rem;
+}
+
+.forgotPassword a {
+  color: var(--light-text);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.forgotPassword a:hover {
+  color: var(--primary-color);
+}
+
+/* Button Styles */
+.loginButton {
+  padding: 0.75rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.loginButton:hover {
+  background-color: var(--primary-dark);
+}
+
+.loginButton:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Message Styles */
+.errorMessage {
+  color: var(--error-color);
+  background-color: rgba(239, 35, 60, 0.1);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.successMessage {
+  color: var(--success-color);
+  background-color: rgba(75, 181, 67, 0.1);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Register CTA */
+.registerCta {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--light-text);
+  font-size: 0.9rem;
+}
+
+.registerLink {
+  color: var(--primary-color);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.registerLink:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* Illustration Styles */
+.loginIllustration {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.loginIllustration img {
+  max-width: 80%;
+  height: auto;
+  margin-bottom: 2rem;
+}
+
+.illustrationText {
+  text-align: center;
+}
+
+.illustrationText h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.illustrationText p {
+  color: var(--light-text);
+  max-width: 400px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .mainContent {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .loginCard {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .loginIllustration {
+    display: none;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .navList {
+    gap: 1rem;
+  }
+}

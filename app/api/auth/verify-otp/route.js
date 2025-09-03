@@ -1,43 +1,48 @@
-import { connectMongoDB } from '@/lib/mongodb';
-import User from '@/models/user';
-import bcrypt from 'bcryptjs';
+// app/api/auth/verify-otp/route.js
 
-export async function POST(req) {
+import { verifyOTP } from "@/lib/otp";
+import User from "@/models/user";
+import jwt from "jsonwebtoken";
+import { connectMongoDB } from "@/lib/mongodb";
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
+
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: "Email and OTP are required" });
+  }
+
   try {
-    const { email, otp } = await req.json();
-
-    if (!email || !otp) {
-      return new Response(JSON.stringify({ message: "Email and OTP are required" }), { status: 400 });
-    }
-
     await connectMongoDB();
 
-    const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+otp +otpExpires +otpVerified");
+    const valid = await verifyOTP(email, otp);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid or expired OTP" });
+    }
+
+    const user = await User.findOne({ email });
 
     if (!user) {
-      return new Response(JSON.stringify({ message: "User not found" }), { status: 404 });
+      return res.status(404).json({ error: "User not found" });
     }
 
-    // Check OTP expiry
-    if (!user.otpExpires || user.otpExpires < new Date()) {
-      return new Response(JSON.stringify({ message: "OTP expired. Please request a new one." }), { status: 400 });
-    }
+    // Create JWT token
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-    // Compare hashed OTP
-    const isOtpValid = await bcrypt.compare(otp, user.otp);
-    if (!isOtpValid) {
-      return new Response(JSON.stringify({ message: "Invalid OTP" }), { status: 400 });
-    }
-
-    // OTP is valid
-    user.otpVerified = true;
-    user.otp = undefined;
-    user.otpExpires = undefined;
-    await user.save();
-
-    return new Response(JSON.stringify({ verified: true }), { status: 200 });
+    res.status(200).json({ message: "OTP verified successfully", token });
   } catch (error) {
-    console.error("Error in verify-otp:", error);
-    return new Response(JSON.stringify({ message: "Server error" }), { status: 500 });
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({ error: "Failed to verify OTP" });
   }
 }

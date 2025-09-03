@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate": "prisma generate",
     "dev": "next dev --turbopack",
-      "build": "npx prisma generate && next build",
+    "build": "npx prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^6.13.0",
+    "@prisma/client": "^6.15.0",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
@@ -23,6 +24,7 @@
     "framer-motion": "^12.23.12",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.542.0",
     "mongodb": "^6.18.0",
     "mongoose": "^8.16.5",
     "next": "15.4.5",
@@ -37,5 +39,8 @@
     "react-window": "^1.8.11",
     "use-debounce": "^10.0.5",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.15.0"
   }
 }

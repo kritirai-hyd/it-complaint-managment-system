@@ -67,33 +67,46 @@ const AdminDashboard = () => {
     }));
   };
 
-  const handleAssign = async (mongoId, complaintId) => {
-    const assignData = assignments[complaintId];
-    if (!assignData?.name || !assignData?.email) {
-      alert("⚠️ Please enter both engineer name and email.");
-      return;
-    }
-    try {
-      const res = await fetch(`/api/complaint/${mongoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "In Progress",
-          assignedTo: assignData.name.trim(),
-          assignedToEmail: assignData.email.trim().toLowerCase(),
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Assignment failed");
+const handleAssign = async (mongoId, complaintId) => {
+  const assignData = assignments[complaintId];
+  if (!assignData?.name || !assignData?.email) {
+    alert("⚠️ Please enter both engineer name and email.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/complaint/${mongoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "In Progress",
+        assignedTo: assignData.name.trim(),
+        assignedToEmail: assignData.email.trim().toLowerCase(),
+      }),
+    });
+
+    if (!res.ok) {
+      let errorMessage = "Assignment failed";
+      const text = await res.text();
+
+      try {
+        const json = JSON.parse(text);
+        errorMessage = json?.error || errorMessage;
+      } catch {
+        // Not JSON—errorMessage stays default
       }
-      alert("✅ Complaint assigned successfully");
-      fetchComplaints();
-    } catch (err) {
-      console.error("Assignment Error:", err);
-      alert("❌ " + err.message);
+
+      throw new Error(errorMessage);
     }
-  };
+
+    alert("✅ Complaint assigned successfully");
+    fetchComplaints();
+  } catch (err) {
+    console.error("Assignment Error:", err);
+    alert("❌ " + err.message);
+  }
+};
+
 
   const getStatusBadge = (status) => {
     switch (status.toLowerCase()) {
@@ -272,7 +285,7 @@ const AdminDashboard = () => {
                 </thead>
                 <tbody>
                   {filteredComplaints.map((complaint) => {
-                    const id = complaint._id;
+                    const id = complaint.complaintId;
                     const compId = complaint.complaintId || id;
                     const assignment = {
                       name: assignments[compId]?.name || "",
