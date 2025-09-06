@@ -8,209 +8,303 @@ import styles from './Login.module.css';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // 1: Login, 2: OTP, 3: Forgot Password
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const router = useRouter();
+  const [fade, setFade] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [isFormValid, setIsFormValid] = useState(false);
   const otpRef = useRef(null);
+  const router = useRouter();
 
-  // Focus OTP input when OTP step is active
   useEffect(() => {
-    if (step === 2 && otpRef.current) {
-      otpRef.current.focus();
+    // Check if both email and password are filled
+    setIsFormValid(email.trim() !== '' && password.trim() !== '');
+  }, [email, password]);
+
+  useEffect(() => {
+    if (step === 2 && otpRef.current) otpRef.current.focus();
+    
+    // Start countdown when OTP is sent
+    if (step === 2 && countdown === 0) {
+      setCountdown(30);
     }
   }, [step]);
 
-  // Handle login or OTP verification
+  useEffect(() => {
+    // Countdown timer for OTP resend
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const transitionStep = (newStep) => {
+    setFade(true);
+    setTimeout(() => {
+      setStep(newStep);
+      setFade(false);
+    }, 300);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
 
-const res = await signIn('credentials', {
-  redirect: false,
-  email: email.trim(),
-  password,
-  role: 'user', // ✅ Always send user role
-  ...(step === 2 ? { otp: otp.trim() } : {}),
-});
-
+    const res = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+      role: 'user',
+      ...(step === 2 && { otp }),
+    });
 
     setLoading(false);
 
     if (res?.error) {
       try {
-        const errObj = JSON.parse(res.error);
-        if (errObj.code === 'OTP_REQUIRED') {
-          setStep(2);
-          setMessage('✅ OTP sent to your email. Please enter it below.');
+        const err = JSON.parse(res.error);
+        if (err.code === 'OTP_REQUIRED') {
+          transitionStep(2);
+          setMessage('✅ OTP sent to your email.');
         } else {
-          setMessage(errObj.message || '❌ Login failed.');
+          setMessage(err.message || '❌ Login failed.');
         }
       } catch {
-        setMessage(res.error);
+        setMessage(res.error || '❌ Unexpected error.');
       }
     } else {
-router.push('/user/dashboard');
+      router.push('/user/dashboard');
     }
   };
 
-  // Send OTP manually
-  const handleAskOtp = async () => {
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setMessage('');
 
-    const res = await fetch('/api/auth/send-otp', {
+    const res = await fetch('/api/auth/user-forgot-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ email: email.trim(), role: 'user' }),
+      body: JSON.stringify({ email }),
     });
 
     const data = await res.json();
     setLoading(false);
 
     if (res.ok) {
-      setStep(2); // Move to OTP step immediately
-      setMessage('✅ OTP sent to your email. Please enter it below.');
+      setMessage('✅ Reset link sent to your email.');
     } else {
-      setMessage(data?.error || '❌ Failed to send OTP.');
+      setMessage(data.error || '❌ Failed to send reset link.');
     }
   };
 
-const handleResendOtp = async () => {
-  setLoading(true);
-  setMessage('');
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setMessage('');
 
-  const res = await fetch('/api/auth/send-otp', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email.trim(), role: 'user' }), // ✅ FIXED
-  });
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role: 'user' }),
+    });
 
-  const data = await res.json();
-  setLoading(false);
+    const data = await res.json();
+    setLoading(false);
+    setCountdown(30); // Reset countdown
 
-  if (res.ok) {
-    setMessage('✅ OTP resent. Check your inbox.');
-  } else {
-    setMessage(data?.error || '❌ Failed to resend OTP.');
-  }
-};
+    if (res.ok) {
+      setMessage('✅ OTP resent. Check your email.');
+    } else {
+      setMessage(data.error || '❌ Could not resend OTP.');
+    }
+  };
+
+  const renderForm = () => {
+    if (step === 1) {
+      return (
+        <div className={`${styles.formStep} ${fade ? styles.fadeOut : styles.fadeIn}`}>
+          <div className={styles.inputGroup}>
+            <label htmlFor="email">Email</label>
+            <input 
+              id="email"
+              type="email" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              required 
+              placeholder="Enter your email"
+              disabled={loading}
+            />
+          </div>
+          <div className={styles.inputGroup}>
+            <label htmlFor="password">Password</label>
+            <input 
+              id="password"
+              type="password" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              required 
+              placeholder="Enter your password"
+              disabled={loading}
+            />
+          </div>
+          <button 
+            type="button" 
+            onClick={() => transitionStep(3)} 
+            className={styles.forgotPasswordLink}
+            disabled={loading}
+          >
+            Forgot Password?
+          </button>
+          <button 
+            type="submit" 
+            disabled={loading || !isFormValid} 
+            className={`${styles.submitButton} ${!isFormValid ? styles.inactiveButton : ''}`}
+          >
+            {loading ? (
+              <div className={styles.buttonLoading}>
+                <div className={styles.spinner}></div>
+                <span>Verifying...</span>
+              </div>
+            ) : 'Verify OTP'}
+          </button>
+        </div>
+      );
+    }
+
+    if (step === 2) {
+      return (
+        <div className={`${styles.formStep} ${fade ? styles.fadeOut : styles.fadeIn}`}>
+          <div className={styles.otpHeader}>
+            <h3>Enter Verification Code</h3>
+            <p>We've sent a 6-digit code to your email</p>
+          </div>
+          <div className={styles.inputGroup}>
+            <label htmlFor="otp">Verification Code</label>
+            <input
+              id="otp"
+              ref={otpRef}
+              type="text"
+              maxLength={6}
+              inputMode="numeric"
+              value={otp}
+              onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+              required
+              placeholder="Enter 6-digit code"
+              className={styles.otpInput}
+              disabled={loading}
+            />
+          </div>
+          <div className={styles.otpResend}>
+            <p>Didn't receive the code?</p>
+            <button 
+              type="button" 
+              onClick={handleResendOtp} 
+              disabled={loading || countdown > 0}
+              className={countdown > 0 ? styles.countdownActive : ''}
+            >
+              {loading ? 'Sending...' : 
+               countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
+            </button>
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className={styles.submitButton}
+          >
+            {loading ? (
+              <div className={styles.buttonLoading}>
+                <div className={styles.spinner}></div>
+                <span>Verifying OTP...</span>
+              </div>
+            ) : 'Verify & Continue'}
+          </button>
+          <button 
+            type="button" 
+            onClick={() => transitionStep(1)} 
+            className={styles.backToLogin}
+            disabled={loading}
+          >
+            Back to Login
+          </button>
+        </div>
+      );
+    }
+
+    if (step === 3) {
+      return (
+        <div className={`${styles.formStep} ${fade ? styles.fadeOut : styles.fadeIn}`}>
+          <div className={styles.forgotPasswordHeader}>
+            <h3>Reset Your Password</h3>
+            <p>Enter your email to receive a reset link</p>
+          </div>
+          <div className={styles.inputGroup}>
+            <label htmlFor="reset-email">Email</label>
+            <input 
+              id="reset-email"
+              type="email" 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              required 
+              placeholder="Enter your email"
+              disabled={loading}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className={styles.submitButton}
+          >
+            {loading ? (
+              <div className={styles.buttonLoading}>
+                <div className={styles.spinner}></div>
+                <span>Sending reset link...</span>
+              </div>
+            ) : 'Send Reset Link'}
+          </button>
+          <button 
+            type="button" 
+            onClick={() => transitionStep(1)} 
+            className={styles.backToLogin}
+            disabled={loading}
+          >
+            Back to Login
+          </button>
+        </div>
+      );
+    }
+  };
 
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
         <div className={styles.loginHeader}>
-      <h2>User Login</h2>
-          <p>Welcome back! Please enter your details to sign in.</p>
+          <h2>
+            {step === 1 && 'Welcome Back'}
+            {step === 2 && 'Verify Your Account'}
+            {step === 3 && 'Reset Password'}
+          </h2>
+          <p>
+            {step === 1 && 'Sign in to access your account'}
+            {step === 2 && 'Enter the code sent to your email'}
+            {step === 3 && 'We\'ll help you get back into your account'}
+          </p>
         </div>
-
-        <form onSubmit={handleLogin} className={styles.loginForm}>
-          {/* Step 1 Inputs */}
-          {step === 1 && (
-            <>
-              <div className={styles.inputGroup}>
-                <label htmlFor="email">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-           
-
-              <button
-                type="button"
-                onClick={handleAskOtp}
-                disabled={!email || loading}
-                className={styles.otpLink}
-              >
-                {loading ? 'Sending OTP...' : 'Send OTP to Email'}
-              </button>
-            </>
-          )}
-
-          {/* Step 2 - OTP Input */}
-          {step === 2 && (
-            <div className={styles.otpContainer}>
-              <div className={styles.otpHeader}>
-                <h3>Verification Required</h3>
-                <p>We've sent a 6-digit code to your email</p>
-              </div>
-              
-              <div className={styles.inputGroup}>
-                <label htmlFor="otp">Enter verification code</label>
-                <input
-                  ref={otpRef}
-                  id="otp"
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={6}
-                  pattern="\d{6}"
-                  inputMode="numeric"
-                  required
-                />
-              </div>
-              
-              <div className={styles.otpResend}>
-                <p>Didn't receive the code?</p>
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={loading}
-                >
-                  {loading ? 'Sending...' : 'Resend code'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={styles.submitButton}
-          >
-            {loading
-              ? step === 1
-                ? 'Logging in...'
-                : 'Verifying...'
-              : step === 1
-              ? 'Login'
-              : 'Verify & Login'}
-          </button>
-
-          {/* Message Output */}
+        
+        <form onSubmit={step === 3 ? handleForgotPassword : handleLogin} className={styles.loginForm}>
+          {renderForm()}
           {message && (
-            <div className={`${styles.message} ${message.toLowerCase().includes('success') || message.includes('✅') ? styles.success : styles.error}`}>
+            <div className={`${styles.message} ${message.includes('✅') ? styles.success : styles.error}`}>
               {message}
             </div>
           )}
         </form>
-            <div className={styles.cardFooter}>
-            <p>Having trouble signing in? <a href="/register">Register here</a></p>
-          </div>
+        
+        <div className={styles.cardFooter}>
+          <p>Don't have an account? <a href="/register">Sign up</a></p>
+        </div>
       </div>
     </div>
   );

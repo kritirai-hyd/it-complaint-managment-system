@@ -11,6 +11,11 @@ import {
   FiCheckCircle,
   FiClock,
   FiRefreshCw,
+  FiChevronDown,
+  FiChevronUp,
+  FiSearch,
+  FiMenu,
+  FiX
 } from "react-icons/fi";
 import "./admin.css";
 
@@ -23,10 +28,19 @@ const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [expandedRow, setExpandedRow] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchComplaints();
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  const checkMobile = () => {
+    setIsMobile(window.innerWidth <= 768);
+  };
 
   const fetchComplaints = async () => {
     setLoading(true);
@@ -43,7 +57,7 @@ const AdminDashboard = () => {
   };
 
   const engineers = [
-      { name: "Couponszone", email: "info@couponszone.coin" },
+    { name: "Couponszone", email: "info@couponszone.coin" },
     { name: "Anada Rai", email: "anada@gmail.com" },
     { name: "Suraj Bhardwaj", email: "suraj@example.com" },
     { name: "Vikash Gupta", email: "vikash@example.com" },
@@ -67,46 +81,45 @@ const AdminDashboard = () => {
     }));
   };
 
-const handleAssign = async (mongoId, complaintId) => {
-  const assignData = assignments[complaintId];
-  if (!assignData?.name || !assignData?.email) {
-    alert("⚠️ Please enter both engineer name and email.");
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/complaint/${mongoId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: "In Progress",
-        assignedTo: assignData.name.trim(),
-        assignedToEmail: assignData.email.trim().toLowerCase(),
-      }),
-    });
-
-    if (!res.ok) {
-      let errorMessage = "Assignment failed";
-      const text = await res.text();
-
-      try {
-        const json = JSON.parse(text);
-        errorMessage = json?.error || errorMessage;
-      } catch {
-        // Not JSON—errorMessage stays default
-      }
-
-      throw new Error(errorMessage);
+  const handleAssign = async (mongoId, complaintId) => {
+    const assignData = assignments[complaintId];
+    if (!assignData?.name || !assignData?.email) {
+      alert("⚠️ Please enter both engineer name and email.");
+      return;
     }
 
-    alert("✅ Complaint assigned successfully");
-    fetchComplaints();
-  } catch (err) {
-    console.error("Assignment Error:", err);
-    alert("❌ " + err.message);
-  }
-};
+    try {
+      const res = await fetch(`/api/complaint/${mongoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "In Progress",
+          assignedTo: assignData.name.trim(),
+          assignedToEmail: assignData.email.trim().toLowerCase(),
+        }),
+      });
 
+      if (!res.ok) {
+        let errorMessage = "Assignment failed";
+        const text = await res.text();
+
+        try {
+          const json = JSON.parse(text);
+          errorMessage = json?.error || errorMessage;
+        } catch {
+          // Not JSON—errorMessage stays default
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      alert("✅ Complaint assigned successfully");
+      fetchComplaints();
+    } catch (err) {
+      console.error("Assignment Error:", err);
+      alert("❌ " + err.message);
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch (status.toLowerCase()) {
@@ -170,20 +183,48 @@ const handleAssign = async (mongoId, complaintId) => {
 
   return (
     <div className="a-dashboard">
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="mobile-header">
+          <button 
+            className="menu-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            {sidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+          </button>
+          <h1>Admin Dashboard</h1>
+          <div className="user-avatar-mobile">
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                width={32}
+                height={32}
+                alt="User"
+                className="user-avatar"
+              />
+            ) : (
+              <div className="user-avatar-placeholder"><FiUsers /></div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
-      <aside className="a-sidebar">
+      <aside className={`a-sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="logo">
           <span>Admin</span>
+          {isMobile && (
+            <button 
+              className="sidebar-close"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <FiX size={20} />
+            </button>
+          )}
         </div>
         <nav>
-          <Link href="/admin" className="active">
+          <Link href="/admin" className="active" onClick={() => isMobile && setSidebarOpen(false)}>
             <i><FiHome /></i><span>Dashboard</span>
-          </Link>
-          <Link href="/admin/login">
-            <i><FiUsers /></i><span>Manager</span>
-          </Link>
-          <Link href="/admin/login">
-            <i><FiUsers /></i><span>Engineer Management</span>
           </Link>
         </nav>
         <div className="sidebar-footer">
@@ -197,7 +238,7 @@ const handleAssign = async (mongoId, complaintId) => {
                 className="user-avatar"
               />
             ) : (
-              <div className="user-avatar-placeholder">👤</div>
+              <div className="user-avatar-placeholder"><FiUsers /></div>
             )}
             <div className="user-details">
               <strong>{session.user.name}</strong>
@@ -207,10 +248,18 @@ const handleAssign = async (mongoId, complaintId) => {
         </div>
       </aside>
 
+      {/* Overlay for mobile sidebar */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Main Content */}
       <main className="main">
         <header className="header">
-          <h1>All Complaints</h1>
+          {!isMobile && <h1>All Complaints</h1>}
           <div className="header-actions">
             <div className="search-bar">
               <input
@@ -220,15 +269,14 @@ const handleAssign = async (mongoId, complaintId) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               <button className="search-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
+                <FiSearch size={16} />
               </button>
             </div>
-            <div className="user-info">
-              <span>Welcome back, <strong>{session.user.name}</strong></span>
-            </div>
+            {!isMobile && (
+              <div className="user-info">
+                <span>Welcome back, <strong>{session.user.name}</strong></span>
+              </div>
+            )}
           </div>
         </header>
 
@@ -248,10 +296,10 @@ const handleAssign = async (mongoId, complaintId) => {
         </div>
 
         <div className="stats-cards">
-          <div className="stat-card"><h3>Total Complaints</h3><p>{complaints.length}</p></div>
-          <div className="stat-card"><h3>Pending</h3><p>{complaints.filter((c) => c.status === "Pending").length}</p></div>
-          <div className="stat-card"><h3>In Progress</h3><p>{complaints.filter((c) => c.status === "In Progress").length}</p></div>
-          <div className="stat-card"><h3>Resolved</h3><p>{complaints.filter((c) => c.status === "Resolved").length}</p></div>
+          <div className="stat-card" ><h3 style={{color:"blue"}}>Total Complaints</h3><p style={{color:"blue"}}>{complaints.length}</p></div>
+          <div className="stat-card"><h3 style={{color:"#b35801"}}>Pending</h3><p style={{color:"#b35801"}}>{complaints.filter((c) => c.status === "Pending").length}</p></div>
+          <div className="stat-card"><h3 style={{color:"#5900ab"}}>In Progress</h3><p style={{color:"#5900ab"}}>{complaints.filter((c) => c.status === "In Progress").length}</p></div>
+          <div className="stat-card"><h3 style={{color:"green"}}>Resolved</h3><p style={{color:"green"}}>{complaints.filter((c) => c.status === "Resolved").length}</p></div>
         </div>
 
         {loading ? (
@@ -268,7 +316,142 @@ const handleAssign = async (mongoId, complaintId) => {
               <FiRefreshCw /> Refresh
             </button>
           </div>
+        ) : isMobile ? (
+          // Mobile Card View
+          <div className="complaint-cards">
+            {filteredComplaints.map((complaint) => {
+              const id = complaint.complaintId;
+              const compId = complaint.complaintId || id;
+              const assignment = {
+                name: assignments[compId]?.name || "",
+                email: assignments[compId]?.email || "",
+              };
+              
+              return (
+                <div key={id} className="complaint-card">
+                  <div className="card-header">
+                    <div className="complaint-id">ID: {compId}</div>
+                    <div className="status-wrapper">
+                      {getStatusBadge(complaint.status)}
+                    </div>
+                  </div>
+                  
+                  <div className="card-content">
+                    <div className="card-field">
+                      <label>Customer:</label>
+                      <div>
+                        <strong>{complaint.name}</strong>
+                        {complaint.phone && <div>{complaint.phone}</div>}
+                      </div>
+                    </div>
+                    
+                    <div className="card-field">
+                      <label>Title:</label>
+                      <span>{complaint.title || "—"}</span>
+                    </div>
+                    
+                    <div className="card-field">
+                      <label>Type:</label>
+                      <span>{complaint.complaintType || "—"}</span>
+                    </div>
+                    
+                    <div className="card-field">
+                      <label>Assigned To:</label>
+                      <span>{complaint.assignedTo || "Unassigned"}</span>
+                    </div>
+                    
+                    {(complaint.status === "Pending" || !complaint.status) && (
+                      <div className="card-field">
+                        <label>Assign Engineer:</label>
+                        <select
+                          value={
+                            assignment.name && assignment.email
+                              ? `${assignment.name}|${assignment.email}`
+                              : ""
+                          }
+                          onChange={(e) => handleEngineerSelect(e, compId)}
+                          className="form-select"
+                        >
+                          <option value="" hidden>Select Engineer</option>
+                          {engineers.map((eng) => (
+                            <option
+                              key={eng.email}
+                              value={`${eng.name}|${eng.email}`}
+                            >
+                              {eng.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    
+                    <div className="card-actions">
+                      {(complaint.status === "Pending" || !complaint.status) && (
+                        <button
+                          onClick={() => handleAssign(id, compId)}
+                          className="btn btn-primary btn-sm"
+                          disabled={!assignment.name || !assignment.email}
+                        >
+                          Assign
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={() => toggleExpand(compId)}
+                        className="btn btn-primary btn-sm"
+                        style={{ backgroundColor: "#5da827ff" }}
+                      >
+                        {expandedRow === compId ? "Hide Details" : "View Details"}
+                        {expandedRow === compId ? <FiChevronUp /> : <FiChevronDown />}
+                      </button>
+                    </div>
+                    
+                    {expandedRow === compId && (
+                      <div className="card-details">
+                        <div className="card-field">
+                          <label>Description:</label>
+                          <p>{complaint.description || "—"}</p>
+                        </div>
+                        
+                        <div className="card-field">
+                          <label>Attachments:</label>
+                          {complaint.attachments && complaint.attachments.length > 0 ? (
+                            <ul>
+                              {complaint.attachments.map((file) => (
+                                <li key={file._id}>
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {file.name}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </div>
+                        
+                        <div className="card-field">
+                          <label>Company Address:</label>
+                          <span>{complaint.companyAddress || "—"}</span>
+                        </div>
+                        
+                        <div className="card-field">
+                          <label>Location:</label>
+                          <span>{complaint.location || "—"}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          // Desktop Table View
           <div className="complaint-table-container">
             <div className="complaint-table-wrapper">
               <table className="complaint-table">

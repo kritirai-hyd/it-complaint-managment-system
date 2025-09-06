@@ -12,9 +12,6 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// ----------------------
-// ADMIN LOGIN FLOW
-// ----------------------
 async function authorizeAdmin({ email, password, role, otp }) {
   if (!role || !allowedAdminRoles.includes(role.toLowerCase())) {
     throw new Error("Invalid role");
@@ -71,9 +68,6 @@ async function authorizeAdmin({ email, password, role, otp }) {
   };
 }
 
-// ----------------------
-// USER LOGIN FLOW
-// ----------------------
 async function authorizeUser({ email, password, otp }) {
   await connectMongoDB();
 
@@ -123,9 +117,6 @@ async function authorizeUser({ email, password, otp }) {
   };
 }
 
-// ----------------------
-// NEXTAUTH CONFIG
-// ----------------------
 const authOptions = {
   providers: [
     CredentialsProvider({
@@ -140,7 +131,6 @@ const authOptions = {
         const { email, password, role, otp } = credentials;
 
         try {
-          // 🔐 Route based on admin role only
           if (allowedAdminRoles.includes((role || "").toLowerCase())) {
             return await authorizeAdmin({ email, password, role, otp });
           } else {
@@ -148,7 +138,7 @@ const authOptions = {
           }
         } catch (err) {
           if (err.message.includes("OTP_REQUIRED")) {
-            throw new Error(err.message); // this will be parsed on frontend
+            throw new Error(err.message); // will be parsed in frontend
           }
           throw new Error(err.message || "Authentication failed");
         }
@@ -181,6 +171,7 @@ const authOptions = {
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);

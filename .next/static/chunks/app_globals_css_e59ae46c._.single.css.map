@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/app/globals.css"],"sourcesContent":["/* src/app/Home.module.css */\n:root {\n  --primary-color: #4361ee;\n  --primary-dark: #3a56d4;\n  --background-light: #f8f9fa;\n  --white: #ffffff;\n  --text-color: #333333;\n  --light-text: #6c757d;\n  --error-color: #ef233c;\n  --success-color: #4bb543;\n  --border-radius: 8px;\n  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);\n}\n*{\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n@media (prefers-color-scheme: dark) {\n  :root {\n    --background: #0a0a0a;\n    --foreground: #ededed;\n  }\n}\n\nhtml,\nbody {\n  max-width: 100vw;\n  overflow-x: hidden;\n}\n\nbody {\n  color: var(--foreground);\n  background: linear-gradient(135deg, #f5f7fb 0%, #e6e9f2 100%);\n  font-family: Arial, Helvetica, sans-serif;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\n* {\n  box-sizing: border-box;\n  padding: 0;\n  margin: 0;\n}\n\na {\n  color: inherit;\n  text-decoration: none;\n}\n\n@media (prefers-color-scheme: dark) {\n  html {\n    color-scheme: dark;\n  }\n}\n"],"names":[],"mappings":"AACA;;;;;;;;;;;;;AAiBA;EACE;;;;;;AAMF;;;;;AAMA;;;;;;;;AAQA;;;;;;AAMA;;;;;AAKA;EACE"}}]
-}

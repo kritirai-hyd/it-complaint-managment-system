@@ -1,13 +1,13 @@
 // src/app/page.jsx (or .tsx)
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './Home.module.css'; // Import the CSS module
-import Login from '../User/Login'; // Assuming this is another component
-import Footer from '../Footer/Footer'; // Assuming this is another component
+import Footer from '../Footer/Footer';
+import Login from '../User/Login';
 
 const Main = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -15,8 +15,22 @@ const Main = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const router = useRouter();
+
+  // Check screen size on mount and resize
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,36 +70,70 @@ const Main = () => {
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   const isFormValid = formData.email && formData.password;
 
   return (
     <div className={styles.loginPage}>
-      {/* Header / Navbar */}
+      {/* Header */}
       <header className={styles.header}>
-        <div className={styles.logoContainer}>
-          <h1 className={styles.logoText}>IT Complaint Management</h1>
+        <div className={styles.headerContainer}>
+          {/* Logo */}
+          <div className={styles.logoContainer}>
+            <Link href="/" className={styles.logoLink}>
+              <h1 className={styles.logoText}>IT Complaint Management</h1>
+            </Link>
+          </div>
+
+          {/* Navigation (Desktop) */}
+          <nav className={styles.nav}>
+            <ul className={styles.navList}>
+              <li className={styles.navItem}>
+                <Link href="/login" className={`${styles.navLink} ${styles.ctaButton}`}>
+                  Login
+                </Link>
+              </li>
+              <li className={styles.navItem}>
+                <Link href="/register" className={`${styles.navLink} ${styles.ctaButton}`}>
+                  Register
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          {/* Hamburger (Mobile Only) */}
+          <button 
+            className={`${styles.mobileMenuButton} ${isMobileMenuOpen ? styles.open : ''}`}
+            onClick={toggleMobileMenu}
+            aria-label="Toggle menu"
+          >
+            <span />
+            <span />
+            <span />
+          </button>
         </div>
-        <nav className={styles.nav}>
-          <ul className={styles.navList}>
-            <li className={styles.navItem}>
-              <Link href="/login" className={styles.navLink}>
-                Login
-              </Link>
-            </li>
-            <li className={styles.navItem}>
-              <Link href="/register" className={styles.navLink}>
-                Register
-              </Link>
-            </li>
-          </ul>
-        </nav>
+
+        {/* Mobile Navigation Menu */}
+        {isMobile && isMobileMenuOpen && (
+          <div className={styles.mobileMenu}>
+            <Link href="/login" className={styles.mobileNavLink} onClick={toggleMobileMenu}>
+              Login
+            </Link>
+            <Link href="/register" className={styles.mobileNavLink} onClick={toggleMobileMenu}>
+              Register
+            </Link>
+          </div>
+        )}
       </header>
 
-      {/* Assuming the Login component is imported and styled separately */}
-      <Login />
 
-      {/* Assuming the Footer component is imported and styled separately */}
-      <Footer />
+    <Login />
+
+
+<Footer />
     </div>
   );
 };

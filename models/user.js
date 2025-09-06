@@ -41,7 +41,21 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-        otpRequired: { type: Boolean, select: false, default: false },
+    otpRequired: {
+      type: Boolean,
+      select: false,
+      default: false,
+    },
+
+    // ✅ Fix: Add password reset fields here
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
   },
   { timestamps: true }
 );

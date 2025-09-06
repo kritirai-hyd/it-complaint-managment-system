@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #ebebeb 0%, #f3e7ff 100%);
   padding: 1rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -12,10 +12,10 @@
 .registerCard {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
   background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: fadeIn 0.5s ease-out;
 }
@@ -36,9 +36,41 @@
   border-bottom: 1px solid #f1f3f4;
 }
 
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #718096;
+  transition: all 0.3s ease;
+}
+
+.step.active {
+  background-color: #0070f3;
+  color: white;
+}
+
+.stepLine {
+  width: 60px;
+  height: 2px;
+  background-color: #e2e8f0;
+  margin: 0 8px;
+}
+
 .title {
   color: #1a202c;
-  font-size: 1.75rem;
+  font-size: 1.875rem;
   font-weight: 700;
   margin: 0 0 0.5rem;
   letter-spacing: -0.5px;
@@ -54,10 +86,32 @@
 .message {
   margin: 1rem 2rem;
   padding: 0.875rem 1rem;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 0.9rem;
-  text-align: center;
+  display: flex;
+  align-items: center;
   animation: slideIn 0.3s ease-out;
+}
+
+.messageIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-weight: bold;
+}
+
+.message.success .messageIcon {
+  background-color: #52c41a;
+  color: white;
+}
+
+.message.error .messageIcon {
+  background-color: #ff4d4f;
+  color: white;
 }
 
 .message.success {
@@ -76,11 +130,19 @@
   padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .inputGroup {
   position: relative;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #4a5568;
+  font-size: 0.9rem;
 }
 
 .inputGroup input {
@@ -106,10 +168,64 @@
   cursor: not-allowed;
 }
 
+.passwordStrength {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  gap: 0.5rem;
+}
+
+.strengthBar {
+  height: 4px;
+  flex-grow: 1;
+  border-radius: 2px;
+  background-color: #e2e8f0;
+  overflow: hidden;
+  position: relative;
+}
+
+.strengthBar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+.strengthBar.weak::after {
+  width: 33%;
+  background-color: #ff4d4f;
+}
+
+.strengthBar.medium::after {
+  width: 66%;
+  background-color: #faad14;
+}
+
+.strengthBar.strong::after {
+  width: 100%;
+  background-color: #52c41a;
+}
+
+.strengthText {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
 .otpContainer {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   margin: 0.5rem 0 1rem;
+}
+
+.otpContainer label {
+  text-align: center;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #4a5568;
 }
 
 .otpInput {
@@ -133,6 +249,29 @@
   box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.1);
 }
 
+.otpHint {
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+}
+
+.inputGroupCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inputGroupCheckbox input {
+  width: auto;
+}
+
+.inputGroupCheckbox label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
 .btnPrimary {
   display: flex;
   align-items: center;
@@ -145,16 +284,16 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: linear-gradient(
-135deg, #327bd1, #0044ff);
+  background: linear-gradient(135deg, #327bd1, #0044ff);
   color: white;
   min-height: 52px;
+  margin-top: 0.5rem;
 }
 
 .btnPrimary:hover:not(:disabled) {
   background: linear-gradient(135deg, #0056b3, #004494);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 112, 243, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 112, 243, 0.3);
 }
 
 .btnPrimary:disabled {
@@ -174,11 +313,13 @@
   transition: all 0.2s ease;
   background: #ffffff;
   color: #4a5568;
+  margin-top: 0.5rem;
 }
 
 .btnSecondary:hover:not(:disabled) {
   background: #f7fafc;
   border-color: #cbd5e0;
+  transform: translateY(-1px);
 }
 
 .btnSecondary:disabled {
@@ -190,7 +331,7 @@
   text-align: center;
   color: #a0aec0;
   font-size: 0.875rem;
-  margin: 0.5rem 0 0;
+  margin: 1rem 0 0;
 }
 
 .cardFooter {
@@ -204,6 +345,7 @@
   color: #0070f3;
   text-decoration: none;
   font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 .link:hover {
@@ -250,6 +392,7 @@
 @media (max-width: 480px) {
   .registerCard {
     max-width: 100%;
+    border-radius: 16px;
   }
   
   .cardHeader {
@@ -262,5 +405,13 @@
   
   .title {
     font-size: 1.5rem;
+  }
+  
+  .stepIndicator {
+    margin-bottom: 1rem;
+  }
+  
+  .stepLine {
+    width: 40px;
   }
 }

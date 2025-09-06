@@ -479,9 +479,9 @@ const handleSubmit = useCallback(async (e) => {
       if (debouncedSearchTerm) {
         const term = debouncedSearchTerm.toLowerCase();
         return (
-          complaint.Title?.toLowerCase().includes(term) ||
-          complaint.Description?.toLowerCase().includes(term) ||
-          complaint.complaintId?.toLowerCase().includes(term)
+          complaint.title?.toLowerCase().includes(term) ||
+          complaint.description?.toLowerCase().includes(term) ||
+          complaint.complaintid?.toLowerCase().includes(term)
         );
       }
       return true;

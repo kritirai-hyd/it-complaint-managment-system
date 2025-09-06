@@ -50,6 +50,16 @@ const AdminSchema = new mongoose.Schema(
     otpExpires: { type: Date, select: false },
     otpVerified: { type: Boolean, select: false, default: false },
     otpRequired: { type: Boolean, select: false, default: false },
+
+    // ✅ These fields should be inside the schema definition object
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,

@@ -1,4 +1,4 @@
-/* Base Styles */
+/* Enhanced UserDashboard.css */
 :root {
   --primary: #4f46e5;
   --primary-light: #6366f1;
@@ -22,6 +22,8 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --transition: all 0.2s ease-in-out;
+  --gradient-primary: linear-gradient(135deg, #6b84ff 0%, #2f28ff 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #7a90ff 0%, #3d35ff 100%);
 }
 
 * {
@@ -41,6 +43,7 @@ body {
 .dashboard-container {
   display: flex;
   min-height: 100vh;
+  position: relative;
 }
 
 .sidebar {
@@ -54,6 +57,8 @@ body {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  z-index: 100;
+  transition: transform 0.3s ease;
 }
 
 .main-content {
@@ -61,6 +66,51 @@ body {
   padding: 2rem;
   overflow-y: auto;
   background-color: var(--light);
+}
+
+/* Mobile Header */
+.mobile-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: var(--white);
+  border-bottom: 1px solid var(--gray-light);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--gray-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+}
+
+.mobile-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-user {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--gray-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 /* Sidebar Styles */
@@ -75,6 +125,9 @@ body {
   font-weight: 600;
   margin-top: 0.5rem;
   color: var(--dark);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .logo-icon {
@@ -149,18 +202,18 @@ body {
 }
 
 .nav-link.active, .new-complaint-btn.active {
-  background:  linear-gradient(135deg, #6b84ff 0%, #2f28ff 100%);
+  background: var(--gradient-primary);
   color: var(--white);
 }
 
 .new-complaint-btn {
-  background:  linear-gradient(135deg, #435eec 0%, #130db8 100%);
+  background: var(--gradient-primary);
   color: var(--white);
   margin-bottom: 1rem;
 }
 
 .new-complaint-btn:hover {
-  background-color: var(--primary-dark);
+  background: var(--gradient-primary-hover);
 }
 
 .logout-btn {
@@ -237,6 +290,7 @@ body {
   border-radius: var(--radius-md);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-light);
 }
 
 .form-section h3 {
@@ -244,6 +298,8 @@ body {
   font-weight: 600;
   margin-bottom: 1.25rem;
   color: var(--dark);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--gray-light);
 }
 
 .section-grid {
@@ -276,12 +332,13 @@ body {
 /* Input Styles */
 input, textarea, select {
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--gray-light);
   border-radius: var(--radius);
   font-size: 0.875rem;
   transition: var(--transition);
   background-color: var(--white);
+  font-family: inherit;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -315,17 +372,12 @@ textarea {
   align-items: center;
   justify-content: center;
   transition: var(--transition);
-  opacity: 0;
+  opacity: 0.7;
 }
 
 .clear-input:hover, .clear-select:hover {
   color: var(--danger);
   background-color: rgba(239, 68, 68, 0.1);
-}
-
-.input-with-clear:hover .clear-input,
-.select-with-clear:hover .clear-select,
-.clear-input:focus, .clear-select:focus {
   opacity: 1;
 }
 
@@ -340,7 +392,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
+  padding: 0.75rem 1.5rem;
   background-color: var(--gray-light);
   color: var(--gray-dark);
   border-radius: var(--radius);
@@ -348,10 +400,12 @@ textarea {
   cursor: pointer;
   transition: var(--transition);
   width: fit-content;
+  border: 1px dashed var(--gray);
 }
 
 .file-upload-btn:hover {
   background-color: #e2e8f0;
+  border-color: var(--primary);
 }
 
 .file-upload input[type="file"] {
@@ -373,8 +427,9 @@ textarea {
 .file-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem;
   background-color: var(--gray-light);
   border-radius: var(--radius);
   font-size: 0.875rem;
@@ -436,26 +491,26 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  border: 1px solid var(--gray-light);
 }
 
 .reset-btn {
-  background-color: var(--gray-light);
+  background-color: var(--white);
   color: var(--gray-dark);
-  border: none;
 }
 
 .reset-btn:hover {
-  background-color: #e2e8f0;
+  background-color: var(--gray-light);
 }
 
 .submit-btn {
-  background:  linear-gradient(135deg, #435eec 0%, #130db8 100%);
+  background: var(--gradient-primary);
   color: var(--white);
   border: none;
 }
 
 .submit-btn:hover {
-  background-color: var(--primary-dark);
+  background: var(--gradient-primary-hover);
 }
 
 .submit-btn:disabled {
@@ -484,6 +539,13 @@ textarea {
   justify-content: center;
   gap: 1rem;
   padding: 2rem;
+}
+
+.spinner-container .spinner {
+  width: 2rem;
+  height: 2rem;
+  border-width: 3px;
+  border-top-color: var(--primary);
 }
 
 /* Error Messages */
@@ -522,6 +584,9 @@ textarea {
   gap: 1rem;
   padding: 2rem;
   text-align: center;
+  background-color: var(--white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .error-message button {
@@ -604,6 +669,10 @@ textarea {
   gap: 0.25rem;
 }
 
+.status-filters button:hover {
+  background-color: var(--gray-light);
+}
+
 .status-filters button.active {
   border-color: currentColor;
   background-color: rgba(79, 70, 229, 0.1);
@@ -617,7 +686,7 @@ textarea {
 /* Complaints Grid */
 .complaints-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1.5rem;
 }
 
@@ -632,10 +701,12 @@ textarea {
   background-color: var(--white);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-light);
 }
 
 .empty-state p {
   color: var(--gray);
+  font-size: 1.125rem;
 }
 
 /* Complaint Card */
@@ -650,6 +721,11 @@ textarea {
 
 .complaint-card:hover {
   box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.complaint-card.expanded {
+  box-shadow: var(--shadow-md);
 }
 
 .card-header {
@@ -665,11 +741,28 @@ textarea {
   flex: 1;
 }
 
+.card-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
 .card-header h3 {
   font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
   color: var(--dark);
+  margin-right: 1rem;
+}
+
+.complaint-id {
+  font-weight: 500;
+  color: var(--primary);
+  font-size: 0.75rem;
+  background-color: rgba(79, 70, 229, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  white-space: nowrap;
 }
 
 .card-meta {
@@ -681,14 +774,26 @@ textarea {
   color: var(--gray);
 }
 
-.complaint-id {
+.complaint-date {
+  font-size: 0.75rem;
+  color: var(--gray);
+}
+
+.complaint-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
   font-weight: 500;
-  color:#fff;
 }
 
 .expand-icon {
   color: var(--gray);
   transition: var(--transition);
+  flex-shrink: 0;
+  margin-top: 0.25rem;
 }
 
 .complaint-card.expanded .expand-icon {
@@ -719,7 +824,7 @@ textarea {
   font-weight: 500;
   font-size: 0.875rem;
   color: var(--gray-dark);
-  min-width: 100px;
+  min-width: 120px;
 }
 
 .detail-value {
@@ -728,11 +833,23 @@ textarea {
   flex: 1;
 }
 
+.detail-value p {
+  margin-top: 0.25rem;
+  line-height: 1.5;
+}
+
 .admin-response {
   background-color: rgba(59, 130, 246, 0.05);
   padding: 0.75rem;
   border-radius: var(--radius);
   border-left: 3px solid var(--info);
+  margin-top: 0.5rem;
+}
+
+.admin-response p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 .attachments-list {
@@ -747,17 +864,32 @@ textarea {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-}
-
-.view-attachment {
-  color: var(--primary);
+  padding: 0.5rem;
+  background-color: var(--gray-light);
+  border-radius: var(--radius);
+  transition: var(--transition);
   text-decoration: none;
-  font-weight: 500;
-  margin-left: auto;
+  color: var(--gray-dark);
 }
 
-.view-attachment:hover {
-  text-decoration: underline;
+.attachment-item:hover {
+  background-color: #e2e8f0;
+}
+
+.file-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-icon {
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.attachment-item:hover .download-icon {
+  opacity: 1;
 }
 
 /* Status Badge */
@@ -818,10 +950,10 @@ textarea {
 .complaint-id {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--white);
   margin: 1rem 0;
-  padding: 0.5rem;
-  background:  linear-gradient(135deg, #435eec 0%, #130db8 100%);
+  padding: 0.5rem 1rem;
+  background: var(--gradient-primary);
   border-radius: var(--radius);
   display: inline-block;
 }
@@ -839,53 +971,106 @@ textarea {
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
-}
-
-.view-complaints-btn {
-  background:  linear-gradient(135deg, #435eec 0%, #130db8 100%);
-  color: var(--white);
   border: none;
 }
 
+.view-complaints-btn {
+  background: var(--gradient-primary);
+  color: var(--white);
+}
+
 .view-complaints-btn:hover {
-  background-color: var(--primary-dark);
+  background: var(--gradient-primary-hover);
 }
 
 .close-modal-btn {
   background-color: var(--gray-light);
   color: var(--gray-dark);
-  border: none;
 }
 
 .close-modal-btn:hover {
   background-color: #e2e8f0;
 }
 
+/* Auth Error */
+.auth-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  height: 100vh;
+}
+
+.auth-error svg {
+  font-size: 3rem;
+  color: var(--danger);
+}
+
+.auth-error h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.auth-error p {
+  color: var(--gray);
+  margin-bottom: 1rem;
+}
+
+.auth-error a {
+  padding: 0.75rem 1.5rem;
+  background: var(--gradient-primary);
+  color: var(--white);
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.auth-error a:hover {
+  background: var(--gradient-primary-hover);
+}
+
 /* Responsive Adjustments */
+@media (max-width: 1024px) {
+  .form-grid, .section-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-field.span-2 {
+    grid-column: span 1;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-container {
     flex-direction: column;
   }
 
   .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    padding: 1rem;
-  border-right: none;
-    border-bottom: 1px solid var(--gray-light);
+    position: fixed;
+    left: -280px;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(280px);
   }
 
   .main-content {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
-  .form-grid, .section-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-field.span-2 {
-    grid-column: span 1;
+  .mobile-header {
+    display: flex;
   }
 
   .complaints-grid {
@@ -898,5 +1083,46 @@ textarea {
 
   .search-bar {
     max-width: 100%;
+  }
+
+  .status-filters {
+    justify-content: center;
+  }
+
+  .form-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-title-section {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .complaint-id {
+    align-self: flex-start;
+  }
+  
+  .card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .detail-label {
+    min-width: auto;
   }
 }

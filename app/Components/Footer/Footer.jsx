@@ -11,7 +11,7 @@ const Footer = () => {
       <div className={styles.footerContainer}>
     
         <div className={styles.footerBottom}>
-          <p className={styles.para}>&copy; 2025 IT Complaint Management System. All rights reserved.</p>
+          <p className={styles.para}>IT Complaint Management System © 2025 | Designed & Developed by Kriti Rai</p>
         </div>
       </div>
     </footer>

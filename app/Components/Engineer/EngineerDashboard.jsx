@@ -1,7 +1,7 @@
 "use client";
-import { FiHome, FiUsers } from "react-icons/fi";
+import { FiHome, FiUsers, FiMenu, FiX, FiLogOut, FiMessageSquare, FiFile, FiCheckCircle, FiXCircle, FiFilter, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import React, { useEffect, useState, useCallback } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import "./Engineer.css";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,6 +13,9 @@ const EngineerDashboard = () => {
   const [error, setError] = useState("");
   const [submittingId, setSubmittingId] = useState(null);
   const [expandedComplaint, setExpandedComplaint] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const fetchComplaints = useCallback(async (engineerName) => {
     if (!engineerName) return;
@@ -73,6 +76,10 @@ const EngineerDashboard = () => {
     setExpandedComplaint(expandedComplaint === id ? null : id);
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   const getStatusBadge = (status) => {
     const statusMap = {
       pending: "badge-pending",
@@ -83,41 +90,67 @@ const EngineerDashboard = () => {
     return statusMap[status?.toLowerCase()] || "badge-default";
   };
 
+  const filteredComplaints = complaints.filter(complaint => {
+    if (activeFilter === "all") return true;
+    return complaint.status?.toLowerCase() === activeFilter.toLowerCase();
+  });
+
+  const statusCounts = {
+    all: complaints.length,
+    pending: complaints.filter(c => c.status?.toLowerCase() === "pending").length,
+    "in progress": complaints.filter(c => c.status?.toLowerCase() === "in progress").length,
+    resolved: complaints.filter(c => c.status?.toLowerCase() === "resolved").length,
+    rejected: complaints.filter(c => c.status?.toLowerCase() === "rejected").length,
+  };
+
   if (status === "loading") return <div className="loading-screen">Loading session...</div>;
   if (!session) return <div className="auth-error">You are not logged in.</div>;
 
   return (
     <>
       <div className="e-dashboard">
-        <aside className="a-sidebar">
+        {/* Mobile Header */}
+        <header className="mobile-header">
+          <button className="menu-toggle" onClick={toggleSidebar}>
+            {sidebarOpen ? <FiX /> : <FiMenu />}
+          </button>
+          <h1>Engineer Dashboard</h1>
+          <div className="user-avatar-mobile">
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                width={36}
+                height={36}
+                alt="User"
+                className="avatar-image"
+              />
+            ) : (
+              <div className="avatar-placeholder">
+                {session.user.name?.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Overlay for mobile when sidebar is open */}
+        {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+
+        <aside className={`a-sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <div className="logo">
             <span>Engineer Dashboard</span>
           </div>
 
           <nav>
-            <Link href="/admin" className="active">
+            <Link href="/engineer" className="active" onClick={() => setSidebarOpen(false)}>
               <i>
                 <FiHome />
               </i>
               <span>Dashboard</span>
             </Link>
-            <Link href="/admin/login">
-              <i>
-                <FiUsers />
-              </i>
-              <span>Manager</span>
-            </Link>
-            <Link href="/admin/login">
-              <i>
-                <FiUsers />
-              </i>
-              <span>Engineer Management</span>
-            </Link>
           </nav>
 
           <div className="sidebar-footer">
             <div className="user-profile">
-              {/* Render Image only if valid src exists */}
               {session.user.image ? (
                 <Image
                   src={session.user.image}
@@ -127,27 +160,94 @@ const EngineerDashboard = () => {
                   className="user-avatar"
                 />
               ) : (
-                <div className="user-avatar-placeholder"> {/* Optional fallback */} </div>
+                <div className="user-avatar-placeholder">
+                  {session.user.name?.charAt(0).toUpperCase()}
+                </div>
               )}
 
               <div className="user-details">
                 <strong>{session.user.name}</strong>
-                <span>Admin</span>
+                <span>Engineer</span>
               </div>
             </div>
+            <button className="logout-btn" onClick={() => signOut()}>
+              <FiLogOut />
+              <span>Logout</span>
+            </button>
           </div>
         </aside>
 
         <div className="engineer-dashboard-container">
           <header className="dashboard-header">
-            <h1>Engineer Dashboard</h1>
-            <div className="user-info">
-              <span className="welcome-message">Welcome, {session.user.name}</span>
-              <span className="user-role">Engineer</span>
+            <div className="header-content">
+              <h1>Welcome, {session.user.name}</h1>
+              <p>Here are your assigned complaints</p>
+            </div>
+            <div className="stats-container">
+              <div className="stat-card">
+                <span className="stat-number">{complaints.length}</span>
+                <span className="stat-label">Total Complaints</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-number">{statusCounts["in progress"]}</span>
+                <span className="stat-label">Require Action</span>
+              </div>
             </div>
           </header>
 
           <main className="dashboard-content">
+            {/* Mobile Filter Toggle */}
+           
+
+            {/* Status Filters */}
+            <div className={`filters-container ${showFilters ? 'filters-visible' : ''}`}>
+              <button 
+                className={`filter-btn ${activeFilter === "all" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveFilter("all");
+                  setShowFilters(false);
+                }}
+              >
+                All ({statusCounts.all})
+              </button>
+              <button 
+                className={`filter-btn ${activeFilter === "pending" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveFilter("pending");
+                  setShowFilters(false);
+                }}
+              >
+                Pending ({statusCounts.pending})
+              </button>
+              <button 
+                className={`filter-btn ${activeFilter === "in progress" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveFilter("in progress");
+                  setShowFilters(false);
+                }}
+              >
+                In Progress ({statusCounts["in progress"]})
+              </button>
+              <button 
+                className={`filter-btn ${activeFilter === "resolved" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveFilter("resolved");
+                  setShowFilters(false);
+                }}
+              >
+                Resolved ({statusCounts.resolved})
+              </button>
+              <button 
+                className={`filter-btn ${activeFilter === "rejected" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveFilter("rejected");
+                  setShowFilters(false);
+                }}
+              >
+                Rejected ({statusCounts.rejected})
+              </button>
+            </div>
+
             {loading && (
               <div className="loading-overlay">
                 <div className="spinner"></div>
@@ -168,28 +268,26 @@ const EngineerDashboard = () => {
               </div>
             )}
 
-            {!loading && !error && complaints.length === 0 && (
+            {!loading && !error && filteredComplaints.length === 0 && (
               <div className="empty-state">
-                <img
-                  src="/empty-state.svg"
-                  alt="No complaints"
-                  className="empty-state-image"
-                />
-                <h3>No complaints assigned to you</h3>
-                <p>When new complaints are assigned, they'll appear here.</p>
+                <div className="empty-icon">
+                  <FiFile />
+                </div>
+                <h3>No complaints found</h3>
+                <p>There are no complaints matching your current filter.</p>
               </div>
             )}
 
-            {!loading && complaints.length > 0 && (
+            {!loading && filteredComplaints.length > 0 && (
               <div className="complaints-container">
                 <div className="complaints-header">
                   <h3>Your Assigned Complaints</h3>
-                  <span className="badge-count">{complaints.length} total</span>
+                  <span className="badge-count">{filteredComplaints.length} shown</span>
                 </div>
 
                 <div className="complaints-list">
-                  {complaints.map((complaint, index) => {
-                    const complaintId = complaint.complaintId ?? index; // fallback key
+                  {filteredComplaints.map((complaint, index) => {
+                    const complaintId = complaint.complaintId ?? index;
                     const isInProgress = (complaint.status || "").toLowerCase() === "in progress";
                     const isExpanded = expandedComplaint === complaintId;
                     const isSubmitting = submittingId === complaintId;
@@ -203,73 +301,74 @@ const EngineerDashboard = () => {
                           className="complaint-summary"
                           onClick={() => toggleExpandComplaint(complaintId)}
                         >
-                          <div className="complaint-id">ID: {complaint.complaintId ?? "N/A"}</div>
-                          <div className="complaint-type">{complaint.complaintType || "—"}</div>
-                          
-                          <div className={`complaint-status ${getStatusBadge(complaint.status)}`}>
-                            {complaint.status || "—"}
+                          <div className="complaint-meta">
+                            <div className="complaint-id">ID: {complaint.complaintId ?? "N/A"}</div>
+                            <div className="complaint-type">{complaint.complaintType || "—"}</div>
                           </div>
-                          <div className="complaint-actions">
-                            {isInProgress ? (
-                              <button
-                                className="action-indicator"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleExpandComplaint(complaintId);
-                                }}
-                              >
-                                Action Required
-                              </button>
-                            ) : (
-                              <span className="no-action">View Details</span>
-                            )}
+                          
+                          <div className="complaint-status-container">
+                            <div className={`complaint-status ${getStatusBadge(complaint.status)}`}>
+                              {complaint.status || "—"}
+                            </div>
+                            <div className="complaint-actions">
+                              {isInProgress ? (
+                                <button
+                                  className="action-indicator"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleExpandComplaint(complaintId);
+                                  }}
+                                >
+                                  Action Required
+                                </button>
+                              ) : (
+                                <span className="no-action">View Details</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
                         {isExpanded && (
                           <div className="complaint-details">
-                            <div className="detail-row">
-                              <span className="detail-label">Name:</span>
-                              <span>{complaint.name || "—"}</span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">Phone:</span>
-                              <span>{complaint.phone || "—"}</span>
-                            </div>
-                              <div className="detail-row">
-                              <span className="detail-label">Title:</span>
-                              <span>{complaint.title || "—"}</span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">Description:</span>
-                              <p className="complaint-description">
-                                {complaint.description || "No description provided."}
-                              </p>
-                            </div>
-  <div className="detail-row">
-                              <span className="detail-label">Attachments:</span>
-                              <div className="complaint-description">
-                                {complaint.attachments &&
-                              complaint.attachments.length > 0 ? (
-                                <ul>
-                                  {complaint.attachments.map((file) => (
-                                    <li
-                                      key={file._id}
-                                      style={{ listStyle: "none" }}
-                                    >
+                            <div className="detail-grid">
+                              <div className="detail-item">
+                                <span className="detail-label">Name:</span>
+                                <span>{complaint.name || "—"}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Phone:</span>
+                                <span>{complaint.phone || "—"}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Title:</span>
+                                <span>{complaint.title || "—"}</span>
+                              </div>
+                              <div className="detail-item full-width">
+                                <span className="detail-label">Description:</span>
+                                <p className="complaint-description">
+                                  {complaint.description || "No description provided."}
+                                </p>
+                              </div>
+                              <div className="detail-item full-width">
+                                <span className="detail-label">Attachments:</span>
+                                <div className="attachments-list">
+                                  {complaint.attachments && complaint.attachments.length > 0 ? (
+                                    complaint.attachments.map((file) => (
                                       <a
+                                        key={file._id}
                                         href={file.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        className="attachment-link"
                                       >
+                                        <FiFile />
                                         {file.name}
                                       </a>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                "—"
-                              )}{" "}
+                                    ))
+                                  ) : (
+                                    "—"
+                                  )}
+                                </div>
                               </div>
                             </div>
 
@@ -285,6 +384,7 @@ const EngineerDashboard = () => {
                               >
                                 <div className="form-group">
                                   <label htmlFor={`message-${complaintId}`}>
+                                    <FiMessageSquare />
                                     Resolution Notes
                                   </label>
                                   <textarea
@@ -307,7 +407,10 @@ const EngineerDashboard = () => {
                                     {isSubmitting ? (
                                       <span className="btn-loader"></span>
                                     ) : (
-                                      "Resolve Complaint"
+                                      <>
+                                        <FiCheckCircle />
+                                        Resolve
+                                      </>
                                     )}
                                   </button>
                                   <button
@@ -319,7 +422,10 @@ const EngineerDashboard = () => {
                                     {isSubmitting ? (
                                       <span className="btn-loader"></span>
                                     ) : (
-                                      "Reject Complaint"
+                                      <>
+                                        <FiXCircle />
+                                        Reject
+                                      </>
                                     )}
                                   </button>
                                 </div>
