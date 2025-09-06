@@ -303,7 +303,7 @@ export default function LoginPage() {
         </form>
         
         <div className={styles.cardFooter}>
-          <p>Don't have an account? <a href="/register">Sign up</a></p>
+          <p>Don't have an account? <a href="/register">Register Here</a></p>
         </div>
       </div>
     </div>

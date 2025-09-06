@@ -1,4 +1,5 @@
 {
+  "/_not-found/page": "/_not-found",
   "/api/admin/request-otp/route": "/api/admin/request-otp",
   "/api/admin/route": "/api/admin",
   "/api/admin/verify-otp/route": "/api/admin/verify-otp",
@@ -14,12 +15,12 @@
   "/api/complaint/engineer/route": "/api/complaint/engineer",
   "/api/complaint/resolve-reject/route": "/api/complaint/resolve-reject",
   "/api/engineer/route": "/api/engineer",
-  "/api/manager/route": "/api/manager",
   "/api/register/request-otp/route": "/api/register/request-otp",
+  "/api/manager/route": "/api/manager",
   "/api/register/route": "/api/register",
   "/api/register/verify-otp/route": "/api/register/verify-otp",
   "/favicon.ico/route": "/favicon.ico",
-  "/_not-found/page": "/_not-found",
+  "/api/complaint/route": "/api/complaint",
   "/admin-reset-password/[token]/page": "/admin-reset-password/[token]",
   "/admin/admin-register/page": "/admin/admin-register",
   "/admin/dashboard/page": "/admin/dashboard",
@@ -28,10 +29,9 @@
   "/check-status/page": "/check-status",
   "/engineer/dashboard/page": "/engineer/dashboard",
   "/login/page": "/login",
+  "/page": "/",
   "/manager/dashboard/page": "/manager/dashboard",
   "/register/page": "/register",
-  "/page": "/",
   "/reset-password/[token]/page": "/reset-password/[token]",
-  "/user/dashboard/page": "/user/dashboard",
-  "/api/complaint/route": "/api/complaint"
+  "/user/dashboard/page": "/user/dashboard"
 }

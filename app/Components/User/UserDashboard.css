@@ -1125,4 +1125,334 @@ textarea {
   .detail-label {
     min-width: auto;
   }
+}/* Enhanced Mobile-First UserDashboard.css */
+:root {
+  /* ... existing variables ... */
+  --mobile-breakpoint: 768px;
+  --sidebar-width: 280px;
+}
+
+/* Mobile Header */
+.mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: var(--white);
+  border-bottom: 1px solid var(--gray-light);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  height: 60px;
+}
+
+.menu-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--gray-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  width: 44px;
+  height: 44px;
+}
+
+.mobile-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.mobile-user {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--gray-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Mobile Sidebar Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* Sidebar for Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(var(--sidebar-width));
+  }
+
+  .main-content {
+    padding: 1rem;
+    width: 100%;
+  }
+}
+
+/* Touch-friendly form elements */
+@media (max-width: 768px) {
+  input, select, textarea, button {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+
+  .form-field {
+    margin-bottom: 1rem;
+  }
+
+  .form-grid, .section-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem;
+  }
+
+  .form-section {
+    padding: 1rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Mobile-optimized complaint cards */
+@media (max-width: 768px) {
+  .complaints-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .complaint-card {
+    border-radius: var(--radius);
+  }
+
+  .card-header {
+    padding: 1rem;
+  }
+
+  .card-body {
+    padding: 0 1rem;
+  }
+
+  .complaint-details {
+    padding: 0.5rem 0 1rem;
+  }
+
+  .detail-row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .detail-label {
+    min-width: auto;
+    font-weight: 600;
+  }
+}
+
+/* Mobile search and filters */
+@media (max-width: 768px) {
+  .search-filter {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .search-bar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .status-filters {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .status-filters button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* Improved file upload for mobile */
+.file-upload-btn {
+  min-height: 44px; /* Minimum touch target size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Better mobile modals */
+@media (max-width: 768px) {
+  .success-modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .success-modal {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    max-width: 100%;
+    animation: slideUp 0.3s ease;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Prevent horizontal scrolling */
+body {
+  overflow-x: hidden;
+}
+
+/* Enhanced focus states for touch devices */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Improved status filters for mobile */
+.status-filters {
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scrollbar-width: none; /* Firefox */
+}
+
+.status-filters::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}/* Sidebar Header Top Section */
+.sidebar-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.sidebar-close {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  transition: var(--transition);
+}
+
+.sidebar-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--dark);
+}
+
+/* Mobile styles for sidebar close button */
+@media (max-width: 768px) {
+  .sidebar-close {
+    display: block;
+  }
+  
+  .sidebar-header-top {
+    align-items: center;
+  }
+  
+  .sidebar-header h2 {
+    margin-top: 0;
+  }
+}
+
+/* Enhanced mobile sidebar styles */
+@media (max-width: 768px) {
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    left: 0;
+  }
+  
+  .sidebar {
+    left: -100%;
+    width: 85%;
+    max-width: 320px;
+    transition: left 0.3s ease;
+  }
+  
+  .sidebar-overlay.active {
+    display: block;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* Improved touch targets for mobile */
+@media (max-width: 768px) {
+  .nav-link, .new-complaint-btn, .logout-btn {
+    min-height: 48px;
+    padding: 1rem;
+  }
+  
+  .sidebar-close {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+@media (min-width: 768px) {
+  .mobile-header{
+    display: none;
+  }
 }
