@@ -1,46 +1,53 @@
-// /app/api/register/route.js
-import { hash } from 'bcryptjs';
-import User from '@/models/user';
-import { connectMongoDB } from '@/lib/mongodb';
+import { prisma } from '@/lib/mongodb';
+import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import { sendOtpEmail } from '@/lib/sendOtpEmail';
 
 export async function POST(req) {
-  await connectMongoDB();
-
-  const { name, email, phone, password } = await req.json();
-
   try {
-    // ✅ Check if user already exists by email or phone
-    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
-    if (existingUser) {
-      return new Response(JSON.stringify({ error: 'User already exists' }), {
-        status: 400,
-      });
+    const { email: rawEmail, name, phone, password } = await req.json();
+
+    if (!rawEmail || !name || !phone || !password) {
+      return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    // ✅ Hash the password
-    const hashedPassword = await hash(password, 10);
+    const email = rawEmail.trim().toLowerCase();
 
-    // ✅ Create new user with otpVerified = false by default
-    const user = await User.create({
-      name,
-      email,
-      phone,
-      password: hashedPassword,
-      oldPassword: hashedPassword,
-      otpVerified: false, // new users must verify OTP before login
+    // Check if user exists
+    const existingUser = await prisma.users.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ error: 'User already exists with this email' }, { status: 400 });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // Remove existing OTPs
+    await prisma.oTP.deleteMany({ where: { email } });
+
+    // Store OTP and user info
+    await prisma.oTP.create({
+      data: {
+        name,
+        email,
+        phone,
+        password: hashedPassword,
+        otp: hashedOtp,
+        expiresAt,
+        role: 'user',
+      },
     });
 
-    // TODO: send OTP email/SMS here (optional)
+    // Send OTP email
+    await sendOtpEmail(email, otp);
 
-    return new Response(
-      JSON.stringify({ message: 'User registered successfully' }),
-      { status: 201 }
-    );
+    return NextResponse.json({ message: 'OTP sent to email' }, { status: 200 });
+
   } catch (error) {
-    console.error('Registration error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal Server Error' }),
-      { status: 500 }
-    );
+    console.error('Error in request-otp:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
